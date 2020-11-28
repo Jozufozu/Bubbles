@@ -1,0 +1,92 @@
+buildscript {
+    repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+
+group = 'red4'
+version = '1.0-SNAPSHOT'
+archivesBaseName = 'bubbles'
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
+
+minecraft {
+    mappings channel: 'snapshot', version: '20201028-1.16.3'
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                bubbles {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('run')
+
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                bubbles {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file('run')
+
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            property 'forge.logging.console.level', 'debug'
+
+            args '--mod', 'bubbles', '--all', '--output', file('src/generated/resources/')
+
+            mods {
+                bubbles {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.16.4-35.1.6'
+
+    // You may put jars on which you depend on in ./libs or you may define them like so..
+    // compile "some.group:artifact:version:classifier"
+    // compile "some.group:artifact:version"
+
+    // Real examples
+    // compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
+    // compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
+
+    // The 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
+    // provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // These dependencies get remapped to your current MCP mappings
+    // deobf 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // For more info...
+    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+}
+
+jar.finalizedBy('reobfJar')
