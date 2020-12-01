@@ -150,12 +150,20 @@ public class BubbleEntity extends Entity {
     public void pop() {
         this.remove();
         for (Entity passenger : this.getPassengers()) {
-            if (passenger instanceof ItemEntity) {
-                ((ItemEntity) passenger).setDefaultPickupDelay();
-            }
-
             passenger.dismount();
         }
+    }
+
+    @Override
+    protected void removePassenger(Entity passenger) {
+        if (this.isAlive()) {
+            this.remove();
+        }
+
+        if (passenger instanceof ItemEntity) {
+            ((ItemEntity) passenger).setDefaultPickupDelay();
+        }
+        super.removePassenger(passenger);
     }
 
     @Override
@@ -202,10 +210,5 @@ public class BubbleEntity extends Entity {
     @Override
     public boolean shouldRiderSit() {
         return false;
-    }
-
-    @Override
-    public void dismount() {
-        super.dismount();
     }
 }

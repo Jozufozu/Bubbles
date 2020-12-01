@@ -49,7 +49,7 @@ public class BubbleBlowerBlock extends Block {
         double z = pos.getZ() + 0.9D * (double)direction.getZOffset() + 0.5;
 
         worldIn.playEvent(1001, pos, 0);
-        worldIn.addEntity(new BubbleEntity(worldIn, x, y, z, direction, 0.2));
+        worldIn.addEntity(new BubbleEntity(worldIn, x, y, z, direction, 0.05));
     }
 
     @Override
