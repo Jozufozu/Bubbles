@@ -3,11 +3,8 @@ package red4.bubbles.entity;
 import net.minecraft.command.arguments.EntityAnchorArgument;
 import net.minecraft.entity.*;
 import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.IPacket;
-import net.minecraft.network.play.server.SSpawnObjectPacket;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -17,13 +14,12 @@ import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraftforge.event.entity.EntityMountEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.network.NetworkHooks;
 import red4.bubbles.Bubbles;
-import red4.bubbles.client.BubbleRenderer;
 
 import java.util.List;
+import java.util.function.BiConsumer;
 
 @Mod.EventBusSubscriber(modid = Bubbles.MODID)
 public class BubbleEntity extends Entity {
@@ -68,6 +64,7 @@ public class BubbleEntity extends Entity {
 
         Vector3d pos = this.getPositionVec();
         Vector3d target = pos.add(this.getMotion());
+
         RayTraceResult raytraceresult = this.world.rayTraceBlocks(new RayTraceContext(pos, target, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, this));
 
         boolean shouldPop = false;
@@ -83,11 +80,16 @@ public class BubbleEntity extends Entity {
             for (Entity entity : world.getEntitiesWithinAABBExcludingEntity(this, this.getBoundingBox().grow(0.25))) {
                 if (this.isPassenger(entity) || entity instanceof BubbleEntity) continue;
 
+                Vector3d entityPos = entity.getPositionVec();
+
                 if (entity.startRiding(this)) {
                     if (entity instanceof ItemEntity) {
                         ((ItemEntity) entity).setInfinitePickupDelay();
                         ((ItemEntity) entity).setNoDespawn();
                     }
+
+                    Vector3d middle = entityPos.add(this.getPositionVec()).scale(0.5);
+                    this.setPosition(middle.x, this.getPosY(), middle.z);
                 }
             }
 
@@ -108,7 +110,9 @@ public class BubbleEntity extends Entity {
             double ySize = entityBoundingBox.getYSize();
             double zSize = entityBoundingBox.getZSize();
 
-            float size = (float) Math.max(xSize, Math.max(ySize, zSize)) + 0.5f;
+            float size = (float) Math.max(xSize, Math.max(ySize, zSize));
+
+            size = Math.max(size + 0.5f, size * 1.25f);
 
             this.size = new EntitySize(size, size, false);
         } else {
@@ -134,6 +138,14 @@ public class BubbleEntity extends Entity {
         if (this.isPassenger(passenger)) {
             double y = this.getPosY() + this.getMountedYOffset();
             passenger.setPosition(this.getPosX(), y, this.getPosZ());
+        }
+
+        Class<? extends Entity> passengerClass = passenger.getClass();
+
+        BiConsumer<BubbleEntity, Entity> behavior = ModEntities.TICK_BEHAVIORS.get(passengerClass);
+
+        if (behavior != null) {
+            behavior.accept(this, passenger);
         }
     }
 
@@ -189,7 +201,6 @@ public class BubbleEntity extends Entity {
 
     @Override
     protected void registerData() {
-
     }
 
     @Override

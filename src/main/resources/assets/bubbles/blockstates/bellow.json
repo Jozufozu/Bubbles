@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "facing=down": {
+      "model": "minecraft:block/hopper"
+    },
+    "facing=east": {
+      "model": "bubbles:block/bellow",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "bubbles:block/bellow"
+    },
+    "facing=south": {
+      "model": "bubbles:block/bellow",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "bubbles:block/bellow",
+      "y": 270
+    }
+  }
+}

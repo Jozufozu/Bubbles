@@ -1,6 +1,7 @@
 package red4.bubbles.client.shader;
 
 import com.mojang.blaze3d.platform.GlStateManager;
+import net.minecraft.client.MainWindow;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.shader.IShaderManager;
 import net.minecraft.client.shader.ShaderLinkHelper;
@@ -9,6 +10,7 @@ import net.minecraft.resources.IReloadableResourceManager;
 import net.minecraft.resources.IResourceManager;
 import net.minecraft.resources.IResourceManagerReloadListener;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.vector.Vector3d;
 import org.lwjgl.system.MemoryUtil;
 import red4.bubbles.Bubbles;
 import red4.bubbles.client.ClientTickHandler;
@@ -26,6 +28,7 @@ public class ShaderHelper {
 
     public static final FloatBuffer FLOAT_BUFFER = MemoryUtil.memAllocFloat(1);
     public static final FloatBuffer VEC3_BUFFER = MemoryUtil.memAllocFloat(3);
+    public static final FloatBuffer VEC2_BUFFER = MemoryUtil.memAllocFloat(2);
     private static final Map<Shader, ShaderProgram> PROGRAMS = new EnumMap<>(Shader.class);
 
     @SuppressWarnings("deprecation")
@@ -60,6 +63,28 @@ public class ShaderHelper {
         FLOAT_BUFFER.position(0);
         FLOAT_BUFFER.put(0, ClientTickHandler.partialTicks);
         GlStateManager.uniform1f(partialTicks, FLOAT_BUFFER);
+
+        MainWindow window = Minecraft.getInstance().getMainWindow();
+
+        int height = window.getHeight();
+        int width = window.getWidth();
+
+        ShaderHelper.VEC2_BUFFER.position(0);
+        ShaderHelper.VEC2_BUFFER.put(0, (float) width);
+        ShaderHelper.VEC2_BUFFER.put(1, (float) height);
+
+        int windowSize = GlStateManager.getUniformLocation(program, "windowSize");
+        GlStateManager.uniform2f(windowSize, ShaderHelper.VEC2_BUFFER);
+
+        Vector3d cameraPos = Minecraft.getInstance().getRenderManager().info.getProjectedView();
+
+        ShaderHelper.VEC3_BUFFER.position(0);
+        ShaderHelper.VEC3_BUFFER.put(0, (float) cameraPos.x);
+        ShaderHelper.VEC3_BUFFER.put(1, (float) cameraPos.y);
+        ShaderHelper.VEC3_BUFFER.put(2, (float) cameraPos.z);
+
+        int camera = GlStateManager.getUniformLocation(program, "cameraPos");
+        GlStateManager.uniform3f(camera, ShaderHelper.VEC3_BUFFER);
 
         if (cb != null) {
             cb.call(program);

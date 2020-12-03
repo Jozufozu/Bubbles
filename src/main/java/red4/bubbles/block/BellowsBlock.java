@@ -1,9 +1,8 @@
 package red4.bubbles.block;
 
-import net.minecraft.block.*;
-import net.minecraft.dispenser.IBlockSource;
-import net.minecraft.dispenser.IPosition;
-import net.minecraft.dispenser.Position;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockRenderType;
+import net.minecraft.block.BlockState;
 import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.state.BooleanProperty;
 import net.minecraft.state.DirectionProperty;
@@ -12,22 +11,21 @@ import net.minecraft.state.properties.BlockStateProperties;
 import net.minecraft.util.Direction;
 import net.minecraft.util.Mirror;
 import net.minecraft.util.Rotation;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import red4.bubbles.entity.BubbleEntity;
 
 import java.util.Random;
 
-public class BubbleBlowerBlock extends Block {
-    public static final DirectionProperty FACING = BlockStateProperties.FACING_EXCEPT_UP;
+public class BellowsBlock extends Block {
+    public static final DirectionProperty FACING_EXCEPT_UP = DirectionProperty.create("facing", (direction) -> direction != Direction.UP);
     public static final BooleanProperty TRIGGERED = BlockStateProperties.TRIGGERED;
 
-    public BubbleBlowerBlock(Properties properties) {
+    public BellowsBlock(Properties properties) {
         super(properties);
-
-        this.setDefaultState(this.stateContainer.getBaseState().with(FACING, Direction.NORTH).with(TRIGGERED, false));
     }
 
     public void neighborChanged(BlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving) {
@@ -43,22 +41,34 @@ public class BubbleBlowerBlock extends Block {
 
     @Override
     public void tick(BlockState state, ServerWorld worldIn, BlockPos pos, Random rand) {
-        Direction direction = state.get(FACING);
-        double x = pos.getX() + 0.9D * (double)direction.getXOffset() + 0.5;
-        double y = pos.getY() + 0.9D * (double)direction.getYOffset() + 0.25;
-        double z = pos.getZ() + 0.9D * (double)direction.getZOffset() + 0.5;
+        Direction direction = state.get(FACING_EXCEPT_UP);
 
-        worldIn.playEvent(1001, pos, 0);
-        worldIn.addEntity(new BubbleEntity(worldIn, x, y, z, direction, 0.0));
+        int dX = direction.getXOffset();
+        int dY = direction.getYOffset();
+        int dZ = direction.getZOffset();
+
+        BlockPos inFront = pos.offset(direction);
+        BlockPos theRest = inFront.offset(direction, 3);
+
+        AxisAlignedBB push = new AxisAlignedBB(inFront, theRest);
+
+        for (BubbleEntity bubble : worldIn.getEntitiesWithinAABB(BubbleEntity.class, push)) {
+            Vector3d motion = bubble.getMotion();
+
+            bubble.setMotion(motion.add(dX, 0, dZ));
+        }
     }
 
     @Override
     public BlockState getStateForPlacement(BlockItemUseContext context) {
-        return this.getDefaultState().with(FACING, context.getPlacementHorizontalFacing().getOpposite());
+        Direction direction = context.getNearestLookingDirection().getOpposite();
+
+
+        return this.getDefaultState().with(FACING_EXCEPT_UP, direction);
     }
 
     protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
-        builder.add(FACING, TRIGGERED);
+        builder.add(FACING_EXCEPT_UP, TRIGGERED);
     }
 
     public BlockRenderType getRenderType(BlockState state) {
@@ -66,10 +76,10 @@ public class BubbleBlowerBlock extends Block {
     }
 
     public BlockState rotate(BlockState state, Rotation rot) {
-        return state.with(FACING, rot.rotate(state.get(FACING)));
+        return state.with(FACING_EXCEPT_UP, rot.rotate(state.get(FACING_EXCEPT_UP)));
     }
 
     public BlockState mirror(BlockState state, Mirror mirrorIn) {
-        return state.rotate(mirrorIn.toRotation(state.get(FACING)));
+        return state.rotate(mirrorIn.toRotation(state.get(FACING_EXCEPT_UP)));
     }
 }
