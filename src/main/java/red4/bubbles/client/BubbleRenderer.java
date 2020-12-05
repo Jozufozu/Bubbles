@@ -14,12 +14,14 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
+import net.minecraft.profiler.IProfiler;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.vector.*;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import red4.bubbles.Bubbles;
@@ -28,14 +30,19 @@ import red4.bubbles.client.shader.ShaderHelper;
 import red4.bubbles.client.shader.ShaderWrappedRenderLayer;
 import red4.bubbles.entity.BubbleEntity;
 
-@Mod.EventBusSubscriber(modid = Bubbles.MODID)
 public class BubbleRenderer extends EntityRenderer<BubbleEntity> {
     private static final ResourceLocation TEXTURE = new ResourceLocation("bubbles:textures/entity/bubble.png");
 
     private final BubbleModel bubbleModel = new BubbleModel();
 
-    @SubscribeEvent
-    public static void renderBubbles(RenderWorldLastEvent event) {
+    public BubbleRenderer(EntityRendererManager renderManager) {
+        super(renderManager);
+        MinecraftForge.EVENT_BUS.addListener(this::renderBubbles);
+    }
+
+    public void renderBubbles(RenderWorldLastEvent event) {
+        IProfiler profiler = Minecraft.getInstance().getProfiler();
+        profiler.startSection("renderBubbles");
         MatrixStack matrixStack = event.getMatrixStack();
 
         WorldRenderer worldRenderer = event.getContext();
@@ -51,15 +58,23 @@ public class BubbleRenderer extends EntityRenderer<BubbleEntity> {
         double d1 = vector3d.getY();
         double d2 = vector3d.getZ();
 
+        Matrix4f matrix4f = matrixStack.getLast().getMatrix();
+
+        ClippingHelper clippinghelper = new ClippingHelper(matrix4f, event.getProjectionMatrix());
+        clippinghelper.setCameraPosition(d0, d1, d2);
+
         IRenderTypeBuffer.Impl renderTypeBuffers = worldRenderer.renderTypeTextures.getBufferSource();
 
         for (Entity entity : world.getAllEntities()) {
             if (entity instanceof BubbleEntity) {
+                if (super.shouldRender((BubbleEntity) entity, clippinghelper, d0, d1, d2))
                 renderEntity(worldRenderer.renderManager, entity, d0, d1, d2, partialTicks, matrixStack, renderTypeBuffers);
             }
         }
 
         renderTypeBuffers.finish();
+
+        profiler.endSection();
     }
 
     private static void renderEntity(EntityRendererManager renderManager, Entity entityIn, double camX, double camY, double camZ, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn) {
@@ -68,10 +83,6 @@ public class BubbleRenderer extends EntityRenderer<BubbleEntity> {
         double d2 = MathHelper.lerp(partialTicks, entityIn.lastTickPosZ, entityIn.getPosZ());
         float f = MathHelper.lerp(partialTicks, entityIn.prevRotationYaw, entityIn.rotationYaw);
         renderManager.renderEntityStatic(entityIn, d0 - camX, d1 - camY, d2 - camZ, f, partialTicks, matrixStackIn, bufferIn, renderManager.getPackedLight(entityIn, partialTicks));
-    }
-
-    public BubbleRenderer(EntityRendererManager renderManager) {
-        super(renderManager);
     }
 
     @Override

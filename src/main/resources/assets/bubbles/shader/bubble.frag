@@ -28,7 +28,6 @@ uniform sampler2D bgl_RenderedTexture;
 uniform int time; // Passed in, see ShaderHelper.java
 uniform float partialTicks; // Passed in, see ShaderHelper.java
 uniform vec2 windowSize;
-uniform vec3 cameraPos;
 
 // iq's 3D noise function
 float hash( float n ){
@@ -49,9 +48,9 @@ float noise( in vec3 x ) {
 
 vec3 noise3(vec3 x) {
     return vec3(
-        noise(x+vec3(123.456,.567,.37)),
-        noise(x+vec3(.11,47.43,19.17)),
-        noise(x)
+    noise(x+vec3(123.456,.567,.37)),
+    noise(x+vec3(.11,47.43,19.17)),
+    noise(x)
     );
 }
 
@@ -80,32 +79,13 @@ vec3 filmic_gamma_inverse(vec3 y) {
     return (1.0 / GAMMA_CURVE) * (exp(GAMMA_SCALE * y) - 1.0);
 }
 
-    // sample weights for the cubemap given a wavelength i
-    // room for improvement in this function
-    #define GREEN_WEIGHT 2.8
+// sample weights for the cubemap given a wavelength i
+// room for improvement in this function
+#define GREEN_WEIGHT 2.8
 vec3 texCubeSampleWeights(float i) {
     vec3 w = vec3((1.0 - i) * (1.0 - i), GREEN_WEIGHT * i * (1.0 - i), i * i);
     return w / dot(w, vec3(1.0));
 }
-
-vec3 sampleCubeMap(vec3 i, vec3 rd) {
-    vec3 t = vec3(cos((float(time) + partialTicks) * 0.1231) * 0.5 + 0.5);
-    vec3 col = vec3(0.5);//normalize(sdf(rd + t) * 0.6 + 0.4);
-    return vec3(
-    dot(texCubeSampleWeights(i.x), col),
-    dot(texCubeSampleWeights(i.y), col),
-    dot(texCubeSampleWeights(i.z), col)
-    );
-}
-
-vec3 sampleCubeMap(vec3 i, vec3 rd0, vec3 rd1, vec3 rd2) {
-    return vec3(
-    dot(texCubeSampleWeights(i.x), vec3(0.5)),
-    dot(texCubeSampleWeights(i.y), vec3(0.7)),
-    dot(texCubeSampleWeights(i.z), vec3(0.3))
-    );
-}
-
 
 vec3 sampleWeights(float i) {
     return vec3((1.0 - i) * (1.0 - i), GREEN_WEIGHT * i * (1.0 - i), i * i);
@@ -130,23 +110,20 @@ vec3 resampleColor(vec3[WAVELENGTHS] rds, vec3 refl0, vec3 refl1, vec3 wl0, vec3
     vec3 intensity0 = refl0;
     vec3 intensity1 = refl1;
     #else
-    vec3 cube0 = sampleCubeMap(wl0, rds[0], rds[1], rds[2]);
-    vec3 cube1 = sampleCubeMap(wl1, rds[3], rds[4], rds[5]);
+    vec3 cube0 = vec3(
+        dot(texCubeSampleWeights(wl0.x), vec3(0.5)),
+        dot(texCubeSampleWeights(wl0.y), vec3(0.7)),
+        dot(texCubeSampleWeights(wl0.z), vec3(0.3))
+    );
+    vec3 cube1 = vec3(
+        dot(texCubeSampleWeights(wl1.x), vec3(0.5)),
+        dot(texCubeSampleWeights(wl1.y), vec3(0.7)),
+        dot(texCubeSampleWeights(wl1.z), vec3(0.3))
+    );
 
     vec3 intensity0 = filmic_gamma_inverse(cube0) + refl0;
     vec3 intensity1 = filmic_gamma_inverse(cube1) + refl1;
     #endif
-    vec3 col = resample(wl0, wl1, intensity0, intensity1);
-
-    return 1.4 * filmic_gamma(col / float(WAVELENGTHS));
-}
-
-vec3 resampleColorSimple(vec3 rd, vec3 wl0, vec3 wl1) {
-    vec3 cube0 = sampleCubeMap(wl0, rd);
-    vec3 cube1 = sampleCubeMap(wl1, rd);
-
-    vec3 intensity0 = filmic_gamma_inverse(cube0);
-    vec3 intensity1 = filmic_gamma_inverse(cube1);
     vec3 col = resample(wl0, wl1, intensity0, intensity1);
 
     return 1.4 * filmic_gamma(col / float(WAVELENGTHS));
@@ -166,10 +143,7 @@ vec3 contrast(vec3 x) {
 }
 
 void main() {
-    vec2 p = (-windowSize.xy + 2.0*gl_FragCoord.xy)/windowSize.y;
-    vec2 st = vec2(gl_TexCoord[0]);
-
-    vec3 col = vec3(0.0);
+    vec3 color = vec3(0.0);
     float incidence = 0.0;
 
     vec3 wavelengths0 = vec3(1.0, 0.8, 0.6);
@@ -179,7 +153,7 @@ void main() {
 
     vec3 rds[WAVELENGTHS];
 
-    vec3 norm = normalize(sdf(abs(normal))) * 0.8 + 0.2;
+    vec3 norm = normalize(abs(sdf(normal))) * 0.8 + vec3(0.2);
 
     float dh = (0.666 / windowSize.y);
     const float rads = TWO_PI / float(AA_SAMPLES);
@@ -188,7 +162,7 @@ void main() {
         vec3 ray = normalize(vec3(dxy, 1.5));// 1.5 is the lens length
         incidence += abs(dot(ray, norm));
 
-        float filmThickness = 0.5 + noise(vec3((float(time) + partialTicks) / 40.0) + cameraPos - pos) * 0.5;
+        float filmThickness = 0.5 + noise(vec3((float(time) + partialTicks) / 40.0) + pos) * 0.5;
 
         vec3 att0 = attenuation(filmThickness, wavelengths0, norm, ray);
         vec3 att1 = attenuation(filmThickness, wavelengths1, norm, ray);
@@ -198,8 +172,18 @@ void main() {
 
         vec3 reflectedRay = reflect(ray, norm);
 
-        vec3 cube0 = REFLECTANCE_GAMMA_SCALE * att0 * sampleCubeMap(wavelengths0, reflectedRay);
-        vec3 cube1 = REFLECTANCE_GAMMA_SCALE * att1 * sampleCubeMap(wavelengths1, reflectedRay);
+        vec3 col = vec3(0.5);//normalize(sdf(rd + t) * 0.6 + 0.4);
+
+        vec3 cube0 = REFLECTANCE_GAMMA_SCALE * att0 * vec3(
+            dot(texCubeSampleWeights(wavelengths0.x), col),
+            dot(texCubeSampleWeights(wavelengths0.y), col),
+            dot(texCubeSampleWeights(wavelengths0.z), col)
+        );
+        vec3 cube1 = REFLECTANCE_GAMMA_SCALE * att1 * vec3(
+            dot(texCubeSampleWeights(wavelengths1.x), col),
+            dot(texCubeSampleWeights(wavelengths1.y), col),
+            dot(texCubeSampleWeights(wavelengths1.z), col)
+        );
 
         vec3 refl0 = REFLECTANCE_SCALE * filmic_gamma_inverse(mix(vec3(0), cube0, f0));
         vec3 refl1 = REFLECTANCE_SCALE * filmic_gamma_inverse(mix(vec3(0), cube1, f1));
@@ -211,16 +195,17 @@ void main() {
         rds[4] = refract(ray, norm, iors1.y);
         rds[5] = refract(ray, norm, iors1.z);
 
-        col += resampleColor(rds, refl0, refl1, wavelengths0, wavelengths1);
+        color += resampleColor(rds, refl0, refl1, wavelengths0, wavelengths1);
     }
 
-    col /= float(AA_SAMPLES);
+    color /= float(AA_SAMPLES);
     incidence /= float(AA_SAMPLES);
 
-    vec2 edge1 = step(vec2(0.05), st);
-    vec2 edge2 = step(vec2(0.05), 1.0 - st);
+    vec2 st = vec2(gl_TexCoord[0]);
+    vec2 edge1 = step(vec2(0.0625), st);
+    vec2 edge2 = step(vec2(0.0625), 1.0 - st);
 
     float edge = 1.0 - edge1.x * edge1.y * edge2.x * edge2.y;
 
-    gl_FragColor = vec4(contrast(col * 0.4) + vec3(0.3 + edge), 0.3 - pow(incidence, 5.) * 0.29);
+    gl_FragColor = vec4(contrast(color * 0.4) + vec3(0.3 + edge), 0.3 - pow(incidence, 5.) * 0.29);
 }

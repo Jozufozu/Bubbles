@@ -54,7 +54,13 @@ public class BubbleBlowerBlock extends Block {
 
     @Override
     public BlockState getStateForPlacement(BlockItemUseContext context) {
-        return this.getDefaultState().with(FACING, context.getPlacementHorizontalFacing().getOpposite());
+        Direction direction = context.getNearestLookingDirection().getOpposite();
+
+        if (direction == Direction.UP) {
+            direction = Direction.DOWN;
+        }
+
+        return this.getDefaultState().with(FACING, direction);
     }
 
     protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {

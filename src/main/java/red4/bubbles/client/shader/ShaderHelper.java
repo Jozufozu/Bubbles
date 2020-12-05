@@ -76,16 +76,6 @@ public class ShaderHelper {
         int windowSize = GlStateManager.getUniformLocation(program, "windowSize");
         GlStateManager.uniform2f(windowSize, ShaderHelper.VEC2_BUFFER);
 
-        Vector3d cameraPos = Minecraft.getInstance().getRenderManager().info.getProjectedView();
-
-        ShaderHelper.VEC3_BUFFER.position(0);
-        ShaderHelper.VEC3_BUFFER.put(0, (float) cameraPos.x);
-        ShaderHelper.VEC3_BUFFER.put(1, (float) cameraPos.y);
-        ShaderHelper.VEC3_BUFFER.put(2, (float) cameraPos.z);
-
-        int camera = GlStateManager.getUniformLocation(program, "cameraPos");
-        GlStateManager.uniform3f(camera, ShaderHelper.VEC3_BUFFER);
-
         if (cb != null) {
             cb.call(program);
         }

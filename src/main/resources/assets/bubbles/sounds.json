@@ -1,0 +1,7 @@
+{
+    "bellows_blow": {
+        "category": "block",
+        "subtitle": "bubbles.subtitle.bellows_blow",
+        "sounds": [ "bubbles:bellows_blow" ]
+    }
+}

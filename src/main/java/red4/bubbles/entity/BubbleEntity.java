@@ -12,16 +12,12 @@ import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
-import net.minecraftforge.event.entity.EntityMountEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.network.NetworkHooks;
-import red4.bubbles.Bubbles;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 
-@Mod.EventBusSubscriber(modid = Bubbles.MODID)
 public class BubbleEntity extends Entity {
     @SuppressWarnings("unchecked")
     public static final EntityType<BubbleEntity> BUBBLE = (EntityType<BubbleEntity>) EntityType.Builder.create(BubbleEntity::new, EntityClassification.MISC)
@@ -29,13 +25,7 @@ public class BubbleEntity extends Entity {
                                                                                                        .build("bubbles:bubble")
                                                                                                        .setRegistryName("bubbles:bubble");
 
-    @SubscribeEvent
-    public static void disallowDismount(EntityMountEvent event) {
-//        Entity maybeBubble = event.getEntityBeingMounted();
-//        if (event.isDismounting() && event.getEntityMounting() instanceof PlayerEntity && maybeBubble instanceof BubbleEntity) {
-//            if (maybeBubble.isAlive()) event.setCanceled(true);
-//        }
-    }
+    private final ArrayList<PushForce> forces = new ArrayList<>();
 
     public BubbleEntity(World worldIn) {
         this(BUBBLE, worldIn);
@@ -62,8 +52,46 @@ public class BubbleEntity extends Entity {
     public void tick() {
         super.tick();
 
+        Vector3d motion = this.getMotion();
+
+        double dx = motion.x;
+        double dy = motion.y;
+        double dz = motion.z;
+
+        for (PushForce force : forces) {
+            dx += force.force.x;
+            dy += force.force.y;
+            dz += force.force.z;
+
+            force.time--;
+        }
+
+        forces.removeIf(PushForce::expired);
+
+        // only fall when there is no horizontal motion
+        if (Math.abs(dx) < 1e-5 && Math.abs(dy) <= 1e-5) {
+            dx = dz = 0.0;
+
+            double volume = 0.0;
+
+            for (Entity passenger : getPassengers()) {
+                AxisAlignedBB passengerSize = passenger.getBoundingBox();
+
+                volume += passengerSize.getXSize() * passengerSize.getYSize() * passengerSize.getZSize();
+            }
+
+            double downForce = 0.03 * volume;;
+
+            dy -= downForce;
+        } else {
+            dy = 0.0;
+        }
+
+        motion = new Vector3d(dx, dy, dz);
+        this.setMotion(motion);
+
         Vector3d pos = this.getPositionVec();
-        Vector3d target = pos.add(this.getMotion());
+        Vector3d target = pos.add(motion);
 
         RayTraceResult raytraceresult = this.world.rayTraceBlocks(new RayTraceContext(pos, target, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, this));
 
@@ -78,18 +106,14 @@ public class BubbleEntity extends Entity {
 
         if (!world.isRemote) {
             for (Entity entity : world.getEntitiesWithinAABBExcludingEntity(this, this.getBoundingBox().grow(0.25))) {
-                if (this.isPassenger(entity) || entity instanceof BubbleEntity) continue;
+                if (entity instanceof BubbleEntity || entity.getRidingEntity() instanceof BubbleEntity) continue;
 
                 Vector3d entityPos = entity.getPositionVec();
 
                 if (entity.startRiding(this)) {
-                    if (entity instanceof ItemEntity) {
-                        ((ItemEntity) entity).setInfinitePickupDelay();
-                        ((ItemEntity) entity).setNoDespawn();
-                    }
+                    Behaviors.doMountBehavior(this, entity);
 
-                    Vector3d middle = entityPos.add(this.getPositionVec()).scale(0.5);
-                    this.setPosition(middle.x, this.getPosY(), middle.z);
+                    this.setPosition(entityPos.x, this.getPosY(), entityPos.z);
                 }
             }
 
@@ -98,6 +122,10 @@ public class BubbleEntity extends Entity {
             }
         }
         this.recalculateSize();
+    }
+
+    public void addForce(PushForce force) {
+        this.forces.add(force);
     }
 
     public void recalculateSize() {
@@ -112,7 +140,7 @@ public class BubbleEntity extends Entity {
 
             float size = (float) Math.max(xSize, Math.max(ySize, zSize));
 
-            size = Math.max(size + 0.5f, size * 1.25f);
+            size = Math.max(size + 0.6f, size * 1.25f);
 
             this.size = new EntitySize(size, size, false);
         } else {
@@ -140,13 +168,7 @@ public class BubbleEntity extends Entity {
             passenger.setPosition(this.getPosX(), y, this.getPosZ());
         }
 
-        Class<? extends Entity> passengerClass = passenger.getClass();
-
-        BiConsumer<BubbleEntity, Entity> behavior = ModEntities.TICK_BEHAVIORS.get(passengerClass);
-
-        if (behavior != null) {
-            behavior.accept(this, passenger);
-        }
+        Behaviors.doTickBehavior(this, passenger);
     }
 
     @Override
@@ -172,9 +194,7 @@ public class BubbleEntity extends Entity {
             this.remove();
         }
 
-        if (passenger instanceof ItemEntity) {
-            ((ItemEntity) passenger).setDefaultPickupDelay();
-        }
+        Behaviors.doDismountBehavior(this, passenger);
         super.removePassenger(passenger);
     }
 
@@ -221,5 +241,19 @@ public class BubbleEntity extends Entity {
     @Override
     public boolean shouldRiderSit() {
         return false;
+    }
+
+    public static class PushForce {
+        public int time;
+        public final Vector3d force;
+
+        public PushForce(int time, Vector3d force) {
+            this.time = time;
+            this.force = force;
+        }
+
+        public boolean expired() {
+            return time < 0;
+        }
     }
 }
