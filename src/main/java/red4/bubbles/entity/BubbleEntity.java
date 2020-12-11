@@ -1,22 +1,24 @@
 package red4.bubbles.entity;
 
+import net.minecraft.block.Block;
 import net.minecraft.command.arguments.EntityAnchorArgument;
 import net.minecraft.entity.*;
-import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.IPacket;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.RayTraceContext;
-import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.shapes.IBooleanFunction;
+import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.network.NetworkHooks;
+import red4.bubbles.block.ISafeBlock;
+import red4.bubbles.util.Collider;
+import red4.bubbles.util.CollisionUtil;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.*;
 
 public class BubbleEntity extends Entity {
     @SuppressWarnings("unchecked")
@@ -59,9 +61,9 @@ public class BubbleEntity extends Entity {
         double dz = motion.z;
 
         for (PushForce force : forces) {
-            dx += force.force.x;
-            dy += force.force.y;
-            dz += force.force.z;
+            dx += force.x;
+            dy += force.y;
+            dz += force.z;
 
             force.time--;
         }
@@ -69,18 +71,10 @@ public class BubbleEntity extends Entity {
         forces.removeIf(PushForce::expired);
 
         // only fall when there is no horizontal motion
-        if (Math.abs(dx) < 1e-5 && Math.abs(dy) <= 1e-5) {
+        if (Math.abs(dx) < 1e-5 && Math.abs(dz) <= 1e-5 && this.passengers.size() > 0) {
             dx = dz = 0.0;
 
-            double volume = 0.0;
-
-            for (Entity passenger : getPassengers()) {
-                AxisAlignedBB passengerSize = passenger.getBoundingBox();
-
-                volume += passengerSize.getXSize() * passengerSize.getYSize() * passengerSize.getZSize();
-            }
-
-            double downForce = 0.03 * volume;;
+            double downForce = 0.001;
 
             dy -= downForce;
         } else {
@@ -90,38 +84,162 @@ public class BubbleEntity extends Entity {
         motion = new Vector3d(dx, dy, dz);
         this.setMotion(motion);
 
-        Vector3d pos = this.getPositionVec();
-        Vector3d target = pos.add(motion);
+        this.moveAndCollide(motion);
 
-        RayTraceResult raytraceresult = this.world.rayTraceBlocks(new RayTraceContext(pos, target, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, this));
+        this.recalculateSize();
+    }
 
-        boolean shouldPop = false;
+    private void moveAndCollide(Vector3d motion) {
+        AxisAlignedBB box = this.getBoundingBox();
 
-        if (raytraceresult.getType() != RayTraceResult.Type.MISS) {
-            target = raytraceresult.getHitVec();
-            shouldPop = true;
+        ArrayList<Collider.BlockCollider> blocks = new ArrayList<>();
+        AxisAlignedBB checkZone = box.union(box.offset(motion));
+        CollisionUtil.makeBlockColliderIterator(world, this, checkZone).forEachRemaining(blocks::add);
+
+        // this bubble should pop if it ends up inside a block somehow
+        if (!world.isRemote) {
+            VoxelShape ourShape = VoxelShapes.create(box);
+
+            for (Collider.BlockCollider block : blocks) {
+                if (VoxelShapes.compare(block.collider, ourShape, IBooleanFunction.AND)) {
+                    this.pop();
+                    return;
+                }
+            }
         }
 
-        this.setPosition(target.x, target.y, target.z);
+        ArrayList<Collider.EntityCollider> entities = new ArrayList<>();
+        CollisionUtil.makeEntityColliderIterator(world, this, checkZone).forEachRemaining(entities::add);
 
-        if (!world.isRemote) {
-            for (Entity entity : world.getEntitiesWithinAABBExcludingEntity(this, this.getBoundingBox().grow(0.25))) {
-                if (entity instanceof BubbleEntity || entity.getRidingEntity() instanceof BubbleEntity) continue;
+        double minX = box.minX;
+        double minY = box.minY;
+        double minZ = box.minZ;
+        double maxX = box.maxX;
+        double maxY = box.maxY;
+        double maxZ = box.maxZ;
 
-                Vector3d entityPos = entity.getPositionVec();
+        int steps = 20;
+        double stepX = motion.x / ((double) steps);
+        double stepY = motion.y / ((double) steps);
+        double stepZ = motion.z / ((double) steps);
 
-                if (entity.startRiding(this)) {
-                    Behaviors.doMountBehavior(this, entity);
+        boolean hasRider = this.passengers.size() > 0;
 
-                    this.setPosition(entityPos.x, this.getPosY(), entityPos.z);
+        main: for (int i = 0; i < steps; i++) {
+            minX += stepX;
+            minY += stepY;
+            minZ += stepZ;
+            maxX += stepX;
+            maxY += stepY;
+            maxZ += stepZ;
+
+            ListIterator<Collider.BlockCollider> scanBlocks = blocks.listIterator();
+            while (scanBlocks.hasNext()) {
+                Collider.BlockCollider collider = scanBlocks.next();
+
+                Block block = collider.state.getBlock();
+                List<AxisAlignedBB> bbs = collider.collider.toBoundingBoxList();
+
+                final boolean isSafe;
+                if (block instanceof ISafeBlock) {
+                    isSafe = ((ISafeBlock) block).isBlockSafe(collider.state, world, collider.pos);
+                } else {
+                    isSafe = false;
+                }
+
+                boolean collided = false;
+
+                for (AxisAlignedBB bb : bbs) {
+                    if (bb.intersects(minX, minY, minZ, maxX, maxY, maxZ)) {
+
+                        // if this is touching something dangerous it should pop immediately, 
+                        // but we don't trust the client to make the call
+                        if (!isSafe) {
+                            if (!world.isRemote) this.pop();
+                            break main;
+                        }
+
+                        collided = true;
+
+                        double nudgeX = getNudge(minX, maxX, stepX, bb.minX, bb.maxX) * 1.01;
+                        double nudgeY = getNudge(minY, maxY, stepY, bb.minY, bb.maxY) * 1.01;
+                        double nudgeZ = getNudge(minZ, maxZ, stepZ, bb.minZ, bb.maxZ) * 1.01;
+
+                        if (Math.abs(nudgeX) > 1e-7) {
+                            minX -= nudgeX;
+                            maxX -= nudgeX;
+                            stepX = 0;
+                        }
+                        if (Math.abs(nudgeY) > 1e-7) {
+                            minY -= nudgeY;
+                            maxY -= nudgeY;
+                            stepY = 0;
+                        }
+                        if (Math.abs(nudgeZ) > 1e-7) {
+                            minZ -= nudgeZ;
+                            maxZ -= nudgeZ;
+                            stepZ = 0;
+                        }
+                    }
+                }
+
+                if (collided) {
+                    scanBlocks.remove();
                 }
             }
 
-            if (!world.hasNoCollisions(this) || shouldPop) {
-                this.pop();
+
+            ListIterator<Collider.EntityCollider> scanEntities = entities.listIterator();
+
+            while (scanEntities.hasNext()) {
+                Collider.EntityCollider entityCollider = scanEntities.next();
+
+                Entity entity = entityCollider.entity;
+
+                if (entity instanceof BubbleEntity || entity.getLowestRidingEntity() instanceof BubbleEntity) {
+                    scanEntities.remove();
+                    continue;
+                }
+
+                if (!world.isRemote) {
+                    AxisAlignedBB entityBoundingBox = entity.getBoundingBox();
+
+                    if (!hasRider && entityBoundingBox.intersects(minX - 0.2, minY - 0.2, minZ - 0.2, maxX + 0.2, maxY + 0.2, maxZ + 0.2)) {
+                        if (entity.startRiding(this)) {
+                            Behaviors.doMountBehavior(this, entity);
+
+                            hasRider = true;
+
+                            scanEntities.remove();
+                        }
+                    }
+                }
             }
         }
-        this.recalculateSize();
+
+        this.setMotion(stepX * steps, stepY * steps, stepZ * steps);
+
+        this.setPosition((minX + maxX) * 0.5, minY, (minZ + maxZ) * 0.5);
+    }
+
+    /**
+     * Tells you how far you have to move along an axis to get outside of a collider.
+     */
+    private static double getNudge(double min, double max, double step, double colliderMin, double colliderMax) {
+        if (step > 0.0 && max >= colliderMin) {
+            double nudge = max - colliderMin;
+
+            if (nudge < step) {
+                return nudge;
+            }
+        } else if (step < 0.0 && min <= colliderMax) {
+            double nudge = min - colliderMax;
+
+            if (nudge > step) {
+                return nudge;
+            }
+        }
+        return 0.0;
     }
 
     public void addForce(PushForce force) {
@@ -129,7 +247,7 @@ public class BubbleEntity extends Entity {
     }
 
     public void recalculateSize() {
-        List<Entity> passengers = this.getPassengers();
+        List<Entity> passengers = this.passengers;
 
         if (!passengers.isEmpty()) {
             AxisAlignedBB entityBoundingBox = passengers.get(0).getBoundingBox();
@@ -201,7 +319,7 @@ public class BubbleEntity extends Entity {
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
         this.pop();
-        return false;
+        return true;
     }
 
     @Override
@@ -245,11 +363,19 @@ public class BubbleEntity extends Entity {
 
     public static class PushForce {
         public int time;
-        public final Vector3d force;
+        public double x;
+        public double y;
+        public double z;
 
         public PushForce(int time, Vector3d force) {
+            this(time, force.x, force.y, force.z);
+        }
+
+        public PushForce(int time, double x, double y, double z) {
             this.time = time;
-            this.force = force;
+            this.x = x;
+            this.y = y;
+            this.z = z;
         }
 
         public boolean expired() {

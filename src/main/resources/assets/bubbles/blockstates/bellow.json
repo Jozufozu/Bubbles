@@ -1,22 +1,16 @@
 {
-  "variants": {
-    "facing=down": {
-      "model": "minecraft:block/hopper"
-    },
-    "facing=east": {
-      "model": "bubbles:block/bellow",
-      "y": 90
-    },
-    "facing=north": {
-      "model": "bubbles:block/bellow"
-    },
-    "facing=south": {
-      "model": "bubbles:block/bellow",
-      "y": 180
-    },
-    "facing=west": {
-      "model": "bubbles:block/bellow",
-      "y": 270
+    "variants": {
+        "facing=east,triggered=false":  { "y": 90, "model": "bubbles:block/bellow" },
+        "facing=west,triggered=false":  { "y": 270, "model": "bubbles:block/bellow" },
+        "facing=south,triggered=false":  { "y": 180, "model": "bubbles:block/bellow" },
+        "facing=north,triggered=false":  { "y": 0, "model": "bubbles:block/bellow" },
+        "facing=down,triggered=false":  { "y": 0, "model": "bubbles:block/bellow" },
+        "facing=up,triggered=false":  { "y": 0, "model": "bubbles:block/bellow" },
+        "facing=east,triggered=true":  { "y": 90, "model": "bubbles:block/bellow_pushed" },
+        "facing=west,triggered=true":  { "y": 270, "model": "bubbles:block/bellow_pushed" },
+        "facing=south,triggered=true":  { "y": 180, "model": "bubbles:block/bellow_pushed" },
+        "facing=north,triggered=true":  { "y": 0, "model": "bubbles:block/bellow_pushed" },
+        "facing=down,triggered=true":  { "y": 0, "model": "bubbles:block/bellow_pushed" },
+        "facing=up,triggered=true":  { "y": 0, "model": "bubbles:block/bellow_pushed" }
     }
-  }
 }

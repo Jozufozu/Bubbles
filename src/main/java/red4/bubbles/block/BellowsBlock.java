@@ -61,15 +61,21 @@ public class BellowsBlock extends Block {
         int dY = direction.getYOffset();
         int dZ = direction.getZOffset();
 
-        worldIn.playSound(null, pos, Bubbles.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 2.0f, 1.0f);
+        worldIn.playSound(null, pos, Bubbles.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 1.0f, 1.0f);
 
-        AxisAlignedBB push = new AxisAlignedBB(pos.offset(direction, 3)).grow(3);
+        AxisAlignedBB push = getPushZone(state, pos);
 
         for (BubbleEntity bubble : worldIn.getEntitiesWithinAABB(BubbleEntity.class, push)) {
             double scale = 0.01;
 
             bubble.addForce(new BubbleEntity.PushForce(15, new Vector3d(dX * scale, 0, dZ * scale)));
         }
+    }
+
+    public AxisAlignedBB getPushZone(BlockState state, BlockPos pos) {
+        Direction direction = state.get(FACING_EXCEPT_UP);
+
+        return new AxisAlignedBB(pos.offset(direction, 3)).grow(2, 1, 2);
     }
 
     @Override

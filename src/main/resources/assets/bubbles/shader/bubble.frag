@@ -202,10 +202,9 @@ void main() {
     incidence /= float(AA_SAMPLES);
 
     vec2 st = vec2(gl_TexCoord[0]);
-    vec2 edge1 = step(vec2(0.0625), st);
-    vec2 edge2 = step(vec2(0.0625), 1.0 - st);
+    vec4 tex = texture2D(bgl_RenderedTexture, st);
+    float white = tex.r;
+    float incidenceMult = tex.g;
 
-    float edge = 1.0 - edge1.x * edge1.y * edge2.x * edge2.y;
-
-    gl_FragColor = vec4(contrast(color * 0.4) + vec3(0.3 + edge), 0.3 - pow(incidence, 5.) * 0.29);
+    gl_FragColor = vec4(contrast(color * 0.4) + vec3(0.3 + white), 0.3 - pow(incidence, 5.) * 0.29 * incidenceMult);
 }

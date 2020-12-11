@@ -27,8 +27,9 @@ import java.util.Map;
 public class ShaderHelper {
 
     public static final FloatBuffer FLOAT_BUFFER = MemoryUtil.memAllocFloat(1);
-    public static final FloatBuffer VEC3_BUFFER = MemoryUtil.memAllocFloat(3);
     public static final FloatBuffer VEC2_BUFFER = MemoryUtil.memAllocFloat(2);
+    public static final FloatBuffer VEC3_BUFFER = MemoryUtil.memAllocFloat(3);
+
     private static final Map<Shader, ShaderProgram> PROGRAMS = new EnumMap<>(Shader.class);
 
     @SuppressWarnings("deprecation")

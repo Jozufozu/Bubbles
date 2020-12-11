@@ -25,11 +25,15 @@ import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import red4.bubbles.block.BellowsBlock;
-import red4.bubbles.block.BubbleBlowerBlock;
-import red4.bubbles.client.BubbleRenderer;
+import red4.bubbles.block.SoapBlock;
+import red4.bubbles.client.renderers.BubbleRenderer;
+import red4.bubbles.client.renderers.BubbleStandRenderer;
 import red4.bubbles.client.shader.ShaderHelper;
 import red4.bubbles.entity.Behaviors;
 import red4.bubbles.entity.BubbleEntity;
+import red4.bubbles.entity.BubbleStandEntity;
+import red4.bubbles.items.BubbleStandItem;
+import red4.bubbles.items.BubbleWandItem;
 
 @Mod(Bubbles.MODID)
 public class Bubbles {
@@ -40,13 +44,17 @@ public class Bubbles {
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, Bubbles.MODID);
     public static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, Bubbles.MODID);
 
+    // should never be played with randomized pitch
     public static final RegistryObject<SoundEvent> BELLOWS_BLOW = SOUNDS.register("bellows_blow", () -> new SoundEvent(new ResourceLocation("bubbles:bellows_blow")));
-
-    public static final RegistryObject<Block> BUBBLE_BLOWER = BLOCKS.register("blower", () -> new BubbleBlowerBlock(AbstractBlock.Properties.create(Material.IRON)));
-    public static final RegistryObject<Item> BLOWER_ITEM = ITEMS.register("blower", () -> new BlockItem(BUBBLE_BLOWER.get(), new Item.Properties().group(ItemGroup.MISC)));
 
     public static final RegistryObject<Block> BELLOW = BLOCKS.register("bellow", BellowsBlock::new);
     public static final RegistryObject<Item> BELLOW_ITEM = ITEMS.register("bellow", () -> new BlockItem(BELLOW.get(), new Item.Properties().group(ItemGroup.MISC)));
+
+    public static final RegistryObject<Block> SOAP_BLOCK = BLOCKS.register("soap_block", SoapBlock::new);
+    public static final RegistryObject<Item> SOAP_BLOCK_ITEM = ITEMS.register("soap_block", () -> new BlockItem(SOAP_BLOCK.get(), new Item.Properties().group(ItemGroup.MISC)));
+
+    public static final RegistryObject<Item> BUBBLE_STAND = ITEMS.register("bubble_stand", BubbleStandItem::new);
+    public static final RegistryObject<Item> BUBBLE_WAND = ITEMS.register("bubble_wand", BubbleWandItem::new);
 
 
     public Bubbles() {
@@ -68,12 +76,14 @@ public class Bubbles {
 
     private void registerEntities(final RegistryEvent.Register<EntityType<?>> event) {
         event.getRegistry().register(BubbleEntity.BUBBLE);
+        event.getRegistry().register(BubbleStandEntity.BUBBLE_STAND);
     }
 
     private void setup(final FMLCommonSetupEvent event) { }
 
     private void doClientStuff(final FMLClientSetupEvent event) {
         RenderingRegistry.registerEntityRenderingHandler(BubbleEntity.BUBBLE, BubbleRenderer::new);
+        RenderingRegistry.registerEntityRenderingHandler(BubbleStandEntity.BUBBLE_STAND, BubbleStandRenderer::new);
     }
 
     private void enqueueIMC(final InterModEnqueueEvent event) { }

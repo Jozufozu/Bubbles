@@ -2,6 +2,7 @@ package red4.bubbles.util;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.world.border.WorldBorder;
@@ -16,19 +17,21 @@ public abstract class Collider {
 
     public static class BlockCollider extends Collider {
         public final BlockState state;
+        public final BlockPos pos;
 
-        public BlockCollider(BlockState state, VoxelShape collider) {
+        public BlockCollider(BlockState state, VoxelShape collider, BlockPos pos) {
             super(collider);
             this.state = state;
+            this.pos = pos;
         }
     }
 
     public static class EntityCollider extends Collider {
-        public final Entity state;
+        public final Entity entity;
 
         public EntityCollider(Entity entity) {
             super(VoxelShapes.create(entity.getBoundingBox()));
-            this.state = entity;
+            this.entity = entity;
         }
     }
 
