@@ -11,7 +11,7 @@ buildscript {
 
 apply plugin: 'net.minecraftforge.gradle'
 
-group = 'red4'
+group = 'jozufozu'
 version = '1.0-SNAPSHOT'
 archivesBaseName = 'bubbles'
 
