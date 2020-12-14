@@ -5,8 +5,13 @@ import jozufozu.bubbles.util.CollisionUtil;
 import net.minecraft.block.Block;
 import net.minecraft.command.arguments.EntityAnchorArgument;
 import net.minecraft.entity.*;
+import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.IPacket;
+import net.minecraft.network.datasync.DataParameter;
+import net.minecraft.network.datasync.DataSerializers;
+import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -18,6 +23,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.network.NetworkHooks;
 import jozufozu.bubbles.block.ISafeBlock;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class BubbleEntity extends Entity {
@@ -26,6 +32,9 @@ public class BubbleEntity extends Entity {
                                                                                                        .size(0.5f, 0.5f)
                                                                                                        .build("bubbles:bubble")
                                                                                                        .setRegistryName("bubbles:bubble");
+
+    public static final DataParameter<BubbleState> STATE = EntityDataManager.createKey(BubbleEntity.class, Serializers.BUBBLE_STATE);
+    public static final DataParameter<Float> EMPTY_SIZE = EntityDataManager.createKey(BubbleEntity.class, DataSerializers.FLOAT);
 
     private final ArrayList<PushForce> forces = new ArrayList<>();
 
@@ -37,13 +46,11 @@ public class BubbleEntity extends Entity {
         super(entityTypeIn, worldIn);
     }
 
-    public BubbleEntity(World worldIn, double x, double y, double z, Direction dir, double speed) {
+    public BubbleEntity(World worldIn, double x, double y, double z, @Nullable PushForce spawnForce) {
         super(BUBBLE, worldIn);
 
         this.setPosition(x, y, z);
-        this.setMotion(speed * dir.getXOffset(), speed * dir.getYOffset(), speed * dir.getZOffset());
-
-        this.lookAt(EntityAnchorArgument.Type.FEET, this.getPositionVec().add(this.getMotion()));
+        if (spawnForce != null) this.forces.add(spawnForce);
 
         this.prevPosX = x;
         this.prevPosY = y;
@@ -51,9 +58,47 @@ public class BubbleEntity extends Entity {
     }
 
     @Override
+    protected void registerData() {
+        this.dataManager.register(STATE, BubbleState.EMPTY);
+        this.dataManager.register(EMPTY_SIZE, BUBBLE.getWidth());
+    }
+
+    public boolean containsEntity() {
+        return passengers.size() > 0;
+    }
+
+    @Nullable
+    public Entity getContainedEntity() {
+        return this.containsEntity() ? this.passengers.get(0) : null;
+    }
+
+    public float getEmptySize() {
+        return this.dataManager.get(EMPTY_SIZE);
+    }
+
+    public void setEmptySize(float size) {
+        this.dataManager.set(EMPTY_SIZE, size);
+    }
+
+    @Override
     public void tick() {
         super.tick();
 
+        Vector3d motion = this.applyForces();
+
+        this.moveAndCollide(motion);
+
+        this.recalculateSize();
+    }
+
+    public void pop() {
+        this.remove();
+        for (Entity passenger : this.getPassengers()) {
+            passenger.dismount();
+        }
+    }
+
+    private Vector3d applyForces() {
         Vector3d motion = this.getMotion();
 
         double dx = motion.x;
@@ -81,12 +126,18 @@ public class BubbleEntity extends Entity {
             dy = 0.0;
         }
 
-        motion = new Vector3d(dx, dy, dz);
-        this.setMotion(motion);
+        return new Vector3d(dx, dy, dz);
+    }
 
-        this.moveAndCollide(motion);
+    private void handleBubbleStandCollision(BubbleStandEntity stand) {
+        Entity containedEntity = this.getContainedEntity();
+        if (containedEntity == null) return;
 
-        this.recalculateSize();
+        AxisAlignedBB attachmentBox = stand.getAttachmentBox();
+
+        if (attachmentBox.intersects(containedEntity.getBoundingBox())) {
+            // do interesting things
+        }
     }
 
     private void moveAndCollide(Vector3d motion) {
@@ -125,6 +176,8 @@ public class BubbleEntity extends Entity {
 
         boolean hasRider = this.passengers.size() > 0;
 
+        ArrayList<BubbleEntity> combineWith = new ArrayList<>();
+
         main: for (int i = 0; i < steps; i++) {
             minX += stepX;
             minY += stepY;
@@ -132,6 +185,38 @@ public class BubbleEntity extends Entity {
             maxX += stepX;
             maxY += stepY;
             maxZ += stepZ;
+
+            ListIterator<Collider.EntityCollider> scanEntities = entities.listIterator();
+
+            while (scanEntities.hasNext()) {
+                Collider.EntityCollider entityCollider = scanEntities.next();
+
+                Entity entity = entityCollider.entity;
+
+                if (entity.getRidingEntity() instanceof BubbleEntity) {
+                    scanEntities.remove();
+                    continue;
+                }
+
+                AxisAlignedBB entityBoundingBox = entity.getBoundingBox();
+
+                if (!hasRider && entityBoundingBox.intersects(minX - 0.2, minY - 0.2, minZ - 0.2, maxX + 0.2, maxY + 0.2, maxZ + 0.2)) {
+                    if (entity instanceof BubbleEntity) {
+                        BubbleEntity other = (BubbleEntity) entity;
+                        if (this.canCombine(other)) combineWith.add(other);
+                    } else if (entity instanceof BubbleStandEntity) {
+                        handleBubbleStandCollision((BubbleStandEntity) entity);
+                    } else if (!world.isRemote && entity.startRiding(this)) {
+                        Behaviors.doMountBehavior(this, entity);
+
+                        this.recalculateSize();
+
+                        hasRider = true;
+                    }
+
+                    scanEntities.remove();
+                }
+            }
 
             ListIterator<Collider.BlockCollider> scanBlocks = blocks.listIterator();
             while (scanBlocks.hasNext()) {
@@ -187,39 +272,13 @@ public class BubbleEntity extends Entity {
                     scanBlocks.remove();
                 }
             }
-
-
-            ListIterator<Collider.EntityCollider> scanEntities = entities.listIterator();
-
-            while (scanEntities.hasNext()) {
-                Collider.EntityCollider entityCollider = scanEntities.next();
-
-                Entity entity = entityCollider.entity;
-
-                if (entity instanceof BubbleEntity || entity.getLowestRidingEntity() instanceof BubbleEntity) {
-                    scanEntities.remove();
-                    continue;
-                }
-
-                if (!world.isRemote) {
-                    AxisAlignedBB entityBoundingBox = entity.getBoundingBox();
-
-                    if (!hasRider && entityBoundingBox.intersects(minX - 0.2, minY - 0.2, minZ - 0.2, maxX + 0.2, maxY + 0.2, maxZ + 0.2)) {
-                        if (entity.startRiding(this)) {
-                            Behaviors.doMountBehavior(this, entity);
-
-                            hasRider = true;
-
-                            scanEntities.remove();
-                        }
-                    }
-                }
-            }
         }
 
         this.setMotion(stepX * steps, stepY * steps, stepZ * steps);
 
         this.setPosition((minX + maxX) * 0.5, minY, (minZ + maxZ) * 0.5);
+
+        if (!combineWith.isEmpty()) this.combineAll(combineWith);
     }
 
     /**
@@ -242,12 +301,69 @@ public class BubbleEntity extends Entity {
         return 0.0;
     }
 
+    public boolean canCombine(BubbleEntity other) {
+        return false;
+//        Entity thisEntity = this.getContainedEntity();
+//        Entity otherEntity = other.getContainedEntity();
+//        if (thisEntity instanceof ItemEntity && otherEntity instanceof ItemEntity) {
+//            ItemStack thisItem = ((ItemEntity) thisEntity).getItem();
+//            ItemStack otherItem = ((ItemEntity) otherEntity).getItem();
+//
+//            if (ItemEntity.canMergeStacks(thisItem, otherItem)) {
+//                ItemStack copy = otherItem.copy();
+//                ItemStack merged = ItemEntity.mergeStacks(thisItem, copy, 64);
+//
+//                if (copy.isEmpty()) {
+//                    if (!world.isRemote) {
+//                        otherEntity.remove();
+//                        ((ItemEntity) thisEntity).setItem(merged);
+//                    }
+//
+//                    return true;
+//                }
+//            }
+//        }
+//
+//        return thisEntity == null && otherEntity == null;
+    }
+
+    public void combineAll(ArrayList<BubbleEntity> other) {
+
+//        Vector3d otherPos = other.getPositionVec();
+//        Vector3d otherMotion = other.getMotion();
+//
+//        BubbleEntity entity = BUBBLE.create(world);
+//
+//        if (entity == null) entity = this;
+//
+//        double thisSize = this.getEmptySize();
+//        double otherSize = other.getEmptySize();
+//
+//        double size = Math.cbrt(thisSize * thisSize * thisSize + otherSize * otherSize * otherSize);
+//
+//        entity.setEmptySize((float) size);
+//        entity.setMotion(motion.x + otherMotion.x, motion.y + otherMotion.y, motion.z + otherMotion.z);
+//        entity.setPosition((position.x + otherPos.x) * 0.5, (position.y + otherPos.y) * 0.5, (position.z + otherPos.z) * 0.5);
+//        entity.forces.addAll(other.forces);
+//
+//        other.remove();
+//
+//        if (entity != this) {
+//            this.remove();
+//            entity.forces.addAll(this.forces);
+//
+//            world.addEntity(entity);
+//        }
+    }
+
     public void addForce(PushForce force) {
-        this.forces.add(force);
+        if (this.ticksExisted > 0) this.forces.add(force);
     }
 
     public void recalculateSize() {
         List<Entity> passengers = this.passengers;
+
+        float potentialSize = 0;
 
         if (!passengers.isEmpty()) {
             AxisAlignedBB entityBoundingBox = passengers.get(0).getBoundingBox();
@@ -256,17 +372,24 @@ public class BubbleEntity extends Entity {
             double ySize = entityBoundingBox.getYSize();
             double zSize = entityBoundingBox.getZSize();
 
-            float size = (float) Math.max(xSize, Math.max(ySize, zSize));
+            double size = Math.max(xSize, Math.max(ySize, zSize));
 
-            size = Math.max(size + 0.6f, size * 1.25f);
-
-            this.size = new EntitySize(size, size, false);
-        } else {
-            this.size = BubbleEntity.BUBBLE.getSize();
+            potentialSize = (float) Math.max(size + 0.6, size * 1.25);
         }
+
+        float emptySize = dataManager == null ? BUBBLE.getWidth() : this.getEmptySize();
+        potentialSize = Math.max(emptySize, potentialSize);
+
+        this.size = new EntitySize(potentialSize, potentialSize, false);
 
         double radius = (double) this.size.width / 2.0D;
         this.setBoundingBox(new AxisAlignedBB(this.getPosX() - radius, this.getPosY(), this.getPosZ() - radius, this.getPosX() + radius, this.getPosY() + (double)this.size.height, this.getPosZ() + radius));
+    }
+
+    @Override
+    public void setPosition(double x, double y, double z) {
+        this.setRawPosition(x, y, z);
+        this.recalculateSize();
     }
 
     @Override
@@ -299,13 +422,6 @@ public class BubbleEntity extends Entity {
         return true;
     }
 
-    public void pop() {
-        this.remove();
-        for (Entity passenger : this.getPassengers()) {
-            passenger.dismount();
-        }
-    }
-
     @Override
     protected void removePassenger(Entity passenger) {
         if (this.isAlive()) {
@@ -314,6 +430,11 @@ public class BubbleEntity extends Entity {
 
         Behaviors.doDismountBehavior(this, passenger);
         super.removePassenger(passenger);
+    }
+
+    @Override
+    public void notifyDataManagerChange(DataParameter<?> key) {
+        if (EMPTY_SIZE.equals(key)) this.recalculateSize();
     }
 
     @Override
@@ -335,10 +456,6 @@ public class BubbleEntity extends Entity {
     @Override
     public boolean canBeCollidedWith() {
         return true;
-    }
-
-    @Override
-    protected void registerData() {
     }
 
     @Override
@@ -367,6 +484,13 @@ public class BubbleEntity extends Entity {
         public double y;
         public double z;
 
+        public PushForce(PushForce other) {
+            this.time = other.time;
+            this.x = other.x;
+            this.y = other.y;
+            this.z = other.z;
+        }
+
         public PushForce(int time, Vector3d force) {
             this(time, force.x, force.y, force.z);
         }
@@ -380,6 +504,10 @@ public class BubbleEntity extends Entity {
 
         public boolean expired() {
             return time < 0;
+        }
+
+        public PushForce copy() {
+            return new PushForce(this);
         }
     }
 }

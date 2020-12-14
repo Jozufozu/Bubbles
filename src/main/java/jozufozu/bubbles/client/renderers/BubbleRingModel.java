@@ -11,23 +11,18 @@ import jozufozu.bubbles.entity.BubbleStandEntity;
 
 public class BubbleRingModel extends EntityModel<BubbleStandEntity> {
 	private final ModelRenderer bubble_ring;
-	private final ModelRenderer west_r1;
 
 	public BubbleRingModel() {
 		textureWidth = 16;
 		textureHeight = 16;
 
 		bubble_ring = new ModelRenderer(this);
-		bubble_ring.setRotationPoint(0.0F, 8.0F, 0.0F);
-		
+		bubble_ring.setRotationPoint(0.0F, 0.0F, 0.0F);
 
-		west_r1 = new ModelRenderer(this);
-		west_r1.setRotationPoint(0.0F, 0.0F, 0.0F);
-		bubble_ring.addChild(west_r1);
-		west_r1.setTextureOffset(4, 4).addBox(2.0F, -2.0F, -0.5F, 1.0F, 4.0F, 1.0F, 0.0F, false);
-		west_r1.setTextureOffset(0, 4).addBox(-3.0F, -2.0F, -0.5F, 1.0F, 4.0F, 1.0F, 0.0F, false);
-		west_r1.setTextureOffset(0, 2).addBox(-3.0F, -3.0F, -0.5F, 6.0F, 1.0F, 1.0F, 0.0F, false);
-		west_r1.setTextureOffset(0, 0).addBox(-3.0F, 2.0F, -0.5F, 6.0F, 1.0F, 1.0F, 0.0F, false);
+		bubble_ring.setTextureOffset(4, 4).addBox(2.0F, -2.0F, -0.5F, 1.0F, 4.0F, 1.0F, 0.0F, false);
+		bubble_ring.setTextureOffset(0, 4).addBox(-3.0F, -2.0F, -0.5F, 1.0F, 4.0F, 1.0F, 0.0F, false);
+		bubble_ring.setTextureOffset(0, 2).addBox(-3.0F, -3.0F, -0.5F, 6.0F, 1.0F, 1.0F, 0.0F, false);
+		bubble_ring.setTextureOffset(0, 0).addBox(-3.0F, 2.0F, -0.5F, 6.0F, 1.0F, 1.0F, 0.0F, false);
 	}
 
 	@Override

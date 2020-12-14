@@ -6,6 +6,7 @@ import jozufozu.bubbles.client.renderers.BubbleStandRenderer;
 import jozufozu.bubbles.client.shader.ShaderHelper;
 import jozufozu.bubbles.entity.Behaviors;
 import jozufozu.bubbles.entity.BubbleStandEntity;
+import jozufozu.bubbles.entity.Serializers;
 import net.minecraft.block.Block;
 import net.minecraft.entity.EntityType;
 import net.minecraft.item.BlockItem;
@@ -70,6 +71,7 @@ public class Bubbles {
         ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
         BLOCKS.register(FMLJavaModLoadingContext.get().getModEventBus());
         SOUNDS.register(FMLJavaModLoadingContext.get().getModEventBus());
+        Serializers.SERIALIZERS.register(FMLJavaModLoadingContext.get().getModEventBus());
     }
 
     private void registerEntities(final RegistryEvent.Register<EntityType<?>> event) {

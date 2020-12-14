@@ -3,7 +3,6 @@
         "category": "block",
         "subtitle": "bubbles.subtitle.bellows_blow",
         "sounds": [
-            "bubbles:bellows_blow0",
             "bubbles:bellows_blow1",
             "bubbles:bellows_blow2",
             "bubbles:bellows_blow3"

@@ -6,6 +6,7 @@ import jozufozu.bubbles.entity.BubbleStandEntity;
 import net.minecraft.client.renderer.IRenderTypeBuffer;
 import net.minecraft.client.renderer.entity.EntityRendererManager;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.vector.Quaternion;
@@ -31,34 +32,49 @@ public class BubbleStandRenderer extends EntityRendererWithBubbleParts<BubbleSta
     }
 
     @Override
-    public void render(BubbleStandEntity entityIn, float entityYaw, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn, int packedLightIn) {
-        super.render(entityIn, entityYaw, partialTicks, matrixStackIn, bufferIn, packedLightIn);
+    public void render(BubbleStandEntity stand, float entityYaw, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn, int packedLightIn) {
+        super.render(stand, entityYaw, partialTicks, matrixStackIn, bufferIn, packedLightIn);
 
         matrixStackIn.push();
 
-        matrixStackIn.rotate(new Quaternion(Vector3f.YP, -entityYaw, true));
-        //matrixStackIn.rotate(new Quaternion(Vector3f.ZP, pitch, true));
+        applyRotation(stand, entityYaw, partialTicks, matrixStackIn);
 
         IVertexBuilder standBuffer = bufferIn.getBuffer(this.base.getRenderType(STAND_BASE));
         this.base.render(matrixStackIn, standBuffer, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+
+        matrixStackIn.push();
+
+        double length = MathHelper.lerp(partialTicks, stand.lastTickLength, stand.getLength());
+
+        matrixStackIn.translate(0, length, 0);
 
         IVertexBuilder ringBuffer = bufferIn.getBuffer(this.ring.getRenderType(BUBBLE_RING));
         this.ring.render(matrixStackIn, ringBuffer, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
 
         matrixStackIn.pop();
+        matrixStackIn.pop();
     }
 
     @Override
-    public void renderBubbleParts(BubbleStandEntity entityIn, float entityYaw, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn, int packedLightIn) {
+    public void renderBubbleParts(BubbleStandEntity stand, float entityYaw, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn, int packedLightIn) {
         matrixStackIn.push();
-        float pitch = MathHelper.lerp(partialTicks, entityIn.prevRotationPitch, entityIn.rotationPitch);
 
-        matrixStackIn.translate(0, 0.5, 0);
-        matrixStackIn.rotate(new Quaternion(Vector3f.YP, -entityYaw, true));
-        matrixStackIn.rotate(new Quaternion(Vector3f.ZP, pitch, true));
+        applyRotation(stand, entityYaw, partialTicks, matrixStackIn);
+        double length = MathHelper.lerp(partialTicks, stand.lastTickLength, stand.getLength());
+
+        matrixStackIn.translate(0, length, 0);
+
         IVertexBuilder ivertexbuilder = bufferIn.getBuffer(this.film.getRenderType(FILM));
         this.film.render(matrixStackIn, ivertexbuilder, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
         matrixStackIn.pop();
+    }
+
+    private void applyRotation(BubbleStandEntity entityIn, float entityYaw, float partialTicks, MatrixStack matrixStackIn) {
+        Direction orientation = entityIn.getOrientation();
+        matrixStackIn.rotate(orientation.getRotation());
+
+        if (orientation.getAxis() == Direction.Axis.X) entityYaw += 90; // TODO: this is a horrible hack that i need to fix
+        matrixStackIn.rotate(new Quaternion(Vector3f.YP, -entityYaw, true));
     }
 
     @Override

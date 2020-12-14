@@ -1,16 +1,16 @@
 {
-    "variants": {
-        "facing=east,triggered=false":  { "y": 90, "model": "bubbles:block/bellow" },
-        "facing=west,triggered=false":  { "y": 270, "model": "bubbles:block/bellow" },
-        "facing=south,triggered=false":  { "y": 180, "model": "bubbles:block/bellow" },
-        "facing=north,triggered=false":  { "y": 0, "model": "bubbles:block/bellow" },
-        "facing=down,triggered=false":  { "y": 0, "model": "bubbles:block/bellow" },
-        "facing=up,triggered=false":  { "y": 0, "model": "bubbles:block/bellow" },
-        "facing=east,triggered=true":  { "y": 90, "model": "bubbles:block/bellow_pushed" },
-        "facing=west,triggered=true":  { "y": 270, "model": "bubbles:block/bellow_pushed" },
-        "facing=south,triggered=true":  { "y": 180, "model": "bubbles:block/bellow_pushed" },
-        "facing=north,triggered=true":  { "y": 0, "model": "bubbles:block/bellow_pushed" },
-        "facing=down,triggered=true":  { "y": 0, "model": "bubbles:block/bellow_pushed" },
-        "facing=up,triggered=true":  { "y": 0, "model": "bubbles:block/bellow_pushed" }
-    }
+    "multipart": [
+        { "when": {"facing": "east","triggered": false }, "apply": { "y": 90, "model": "bubbles:block/bellows_unpushed" } },
+        { "when": {"facing": "west","triggered": false }, "apply": { "y": 270, "model": "bubbles:block/bellows_unpushed" } },
+        { "when": {"facing": "south","triggered": false }, "apply": { "y": 180, "model": "bubbles:block/bellows_unpushed" } },
+        { "when": {"facing": "north","triggered": false }, "apply": { "y": 0, "model": "bubbles:block/bellows_unpushed" } },
+        { "when": {"facing": "east","triggered": true }, "apply": { "y": 90, "model": "bubbles:block/bellows_pushed" } },
+        { "when": {"facing": "west","triggered": true }, "apply": { "y": 270, "model": "bubbles:block/bellows_pushed" } },
+        { "when": {"facing": "south","triggered": true }, "apply": { "y": 180, "model": "bubbles:block/bellows_pushed" } },
+        { "when": {"facing": "north","triggered": true }, "apply": { "y": 0, "model": "bubbles:block/bellows_pushed" } },
+        { "when": {"facing": "east","triggered": "true|false" }, "apply": { "y": 90, "model": "bubbles:block/bellows_base" } },
+        { "when": {"facing": "west","triggered": "true|false" }, "apply": { "y": 270, "model": "bubbles:block/bellows_base" } },
+        { "when": {"facing": "south","triggered": "true|false" }, "apply": { "y": 180, "model": "bubbles:block/bellows_base" } },
+        { "when": {"facing": "north","triggered": "true|false" }, "apply": { "y": 0, "model": "bubbles:block/bellows_base" } }
+    ]
 }

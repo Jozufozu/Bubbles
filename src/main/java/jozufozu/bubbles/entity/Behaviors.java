@@ -3,6 +3,7 @@ package jozufozu.bubbles.entity;
 import net.minecraft.entity.AreaEffectCloudEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.item.TNTEntity;
 
 import java.util.HashMap;
 import java.util.function.BiConsumer;
@@ -27,6 +28,14 @@ public class Behaviors {
             AreaEffectCloudEntity cloud = (AreaEffectCloudEntity) entity;
             float radius = cloud.getRadius();
             cloud.setRadius(radius - cloud.radiusPerTick);
+        });
+
+        TICK_BEHAVIORS.put(TNTEntity.class, (bubbleEntity, entity) -> {
+            TNTEntity tnt = (TNTEntity) entity;
+
+            if (tnt.getFuse() == 1) {
+
+            }
         });
     }
 
