@@ -53,8 +53,8 @@ public class BellowsBlock extends Block {
 
         SHAPE_NORTH = VoxelShapes.combineAndSimplify(base, nozzle, IBooleanFunction.OR);
         SHAPE_SOUTH = ShapeUtil.rotateY(SHAPE_NORTH, 180);
-        SHAPE_EAST = ShapeUtil.rotateY(SHAPE_NORTH, 270);
         SHAPE_WEST = ShapeUtil.rotateY(SHAPE_NORTH, 90);
+        SHAPE_EAST = ShapeUtil.rotateY(SHAPE_NORTH, 270);
     }
 
     public BellowsBlock() {
@@ -88,7 +88,7 @@ public class BellowsBlock extends Block {
         int dX = direction.getXOffset();
         int dZ = direction.getZOffset();
 
-        worldIn.playSound(null, pos, Bubbles.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 1.0f, 1.0f);
+        worldIn.playSound(null, pos, Bubbles.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 1.0f, 0.95f + 0.1f * rand.nextFloat());
 
         AxisAlignedBB push = getPushZone(state, pos);
 

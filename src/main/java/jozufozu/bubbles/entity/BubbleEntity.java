@@ -87,6 +87,9 @@ public class BubbleEntity extends Entity {
         Vector3d motion = this.applyForces();
 
         this.moveAndCollide(motion);
+        this.doBlockCollisions();
+
+        if (this.getPosY() > world.getHeight()) this.pop();
 
         this.recalculateSize();
     }
@@ -115,15 +118,10 @@ public class BubbleEntity extends Entity {
 
         forces.removeIf(PushForce::expired);
 
-        // only fall when there is no horizontal motion
-        if (Math.abs(dx) < 1e-5 && Math.abs(dz) <= 1e-5 && this.passengers.size() > 0) {
-            dx = dz = 0.0;
-
-            double downForce = 0.001;
-
-            dy -= downForce;
+        if (Math.abs(dy) > 0.03) {
+            dy -= Math.signum(dy) * 0.03;
         } else {
-            dy = 0.0;
+            dy = 0;
         }
 
         return new Vector3d(dx, dy, dz);

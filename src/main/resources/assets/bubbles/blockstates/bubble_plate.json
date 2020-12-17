@@ -1,0 +1,16 @@
+{
+    "variants": {
+        "side=down,powered=false":  { "model": "bubbles:block/bubble_plate" },
+        "side=down,powered=true":   { "model": "bubbles:block/bubble_plate_down" },
+        "side=up,powered=false":    { "x": 180, "model": "bubbles:block/bubble_plate" },
+        "side=up,powered=true":     { "x": 180, "model": "bubbles:block/bubble_plate_down" },
+        "side=north,powered=false": { "y": 180, "x": 90,  "model": "bubbles:block/bubble_plate" },
+        "side=north,powered=true":  { "y": 180, "x": 90,  "model": "bubbles:block/bubble_plate_down" },
+        "side=south,powered=false": { "x": 90, "model": "bubbles:block/bubble_plate" },
+        "side=south,powered=true":  { "x": 90, "model": "bubbles:block/bubble_plate_down" },
+        "side=west,powered=false":  { "y": 90,  "x": 90, "model": "bubbles:block/bubble_plate" },
+        "side=west,powered=true":   { "y": 90,  "x": 90, "model": "bubbles:block/bubble_plate_down" },
+        "side=east,powered=false":  { "y": 270, "x": 90, "model": "bubbles:block/bubble_plate" },
+        "side=east,powered=true":   { "y": 270, "x": 90, "model": "bubbles:block/bubble_plate_down" }
+    }
+}

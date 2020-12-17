@@ -1,5 +1,6 @@
 package jozufozu.bubbles;
 
+import jozufozu.bubbles.block.ModBlocks;
 import jozufozu.bubbles.block.SoapBlock;
 import jozufozu.bubbles.client.renderers.BubbleRenderer;
 import jozufozu.bubbles.client.renderers.BubbleStandRenderer;
@@ -40,17 +41,10 @@ public class Bubbles {
     public static final Logger LOGGER = LogManager.getLogger();
 
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, Bubbles.MODID);
-    public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, Bubbles.MODID);
     public static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, Bubbles.MODID);
 
-    // should never be played with randomized pitch
+    // should be played with pitch +/- 0.1
     public static final RegistryObject<SoundEvent> BELLOWS_BLOW = SOUNDS.register("bellows_blow", () -> new SoundEvent(new ResourceLocation("bubbles:bellows_blow")));
-
-    public static final RegistryObject<Block> BELLOW = BLOCKS.register("bellow", BellowsBlock::new);
-    public static final RegistryObject<Item> BELLOW_ITEM = ITEMS.register("bellow", () -> new BlockItem(BELLOW.get(), new Item.Properties().group(ItemGroup.MISC)));
-
-    public static final RegistryObject<Block> SOAP_BLOCK = BLOCKS.register("soap_block", SoapBlock::new);
-    public static final RegistryObject<Item> SOAP_BLOCK_ITEM = ITEMS.register("soap_block", () -> new BlockItem(SOAP_BLOCK.get(), new Item.Properties().group(ItemGroup.MISC)));
 
     public static final RegistryObject<Item> BUBBLE_STAND = ITEMS.register("bubble_stand", BubbleStandItem::new);
     public static final RegistryObject<Item> BUBBLE_WAND = ITEMS.register("bubble_wand", BubbleWandItem::new);
@@ -69,7 +63,7 @@ public class Bubbles {
         FMLJavaModLoadingContext.get().getModEventBus().addGenericListener(EntityType.class, this::registerEntities);
 
         ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
-        BLOCKS.register(FMLJavaModLoadingContext.get().getModEventBus());
+        ModBlocks.BLOCKS.register(FMLJavaModLoadingContext.get().getModEventBus());
         SOUNDS.register(FMLJavaModLoadingContext.get().getModEventBus());
         Serializers.SERIALIZERS.register(FMLJavaModLoadingContext.get().getModEventBus());
     }

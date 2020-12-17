@@ -4,6 +4,7 @@ import jozufozu.bubbles.Bubbles;
 import net.minecraft.entity.*;
 import net.minecraft.entity.monster.EndermanEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.IPacket;
 import net.minecraft.network.datasync.DataParameter;
@@ -15,6 +16,7 @@ import net.minecraft.util.Direction;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.math.vector.Vector3i;
 import net.minecraft.world.World;
@@ -99,8 +101,15 @@ public class BubbleStandEntity extends Entity {
     }
 
     @Override
+    public ItemStack getPickedResult(RayTraceResult target) {
+        return new ItemStack(Bubbles.BUBBLE_STAND.get());
+    }
+
+    @Override
     public void tick() {
         super.tick();
+
+        this.lastTickLength = this.getLength();
 
         if (altering != null) {
             adjustLength(altering);
@@ -111,8 +120,6 @@ public class BubbleStandEntity extends Entity {
         if (!world.isRemote && world.isAirBlock(this.getPosition().offset(this.getOrientation().getOpposite()))) {
             this.remove();
         }
-
-        this.lastTickLength = this.getLength();
     }
 
     protected void adjustLength(PlayerEntity altering) {
@@ -144,6 +151,8 @@ public class BubbleStandEntity extends Entity {
             this.setLengthFromPlaneIntersection(inter1);
         } else if (inter2 != null) {
             this.setLengthFromPlaneIntersection(inter2);
+        } else {
+            this.setLength(3.5f);
         }
     }
 
@@ -158,13 +167,14 @@ public class BubbleStandEntity extends Entity {
 
         double length = to.x * xOffset + to.y * yOffset + to.z * zOffset;
 
-        length = Math.round(length / 0.5) * 0.5;
+        if (length > 2.5) {
+            if (length < 2.75) length = 2.5;
+            else length = 2.5 + Math.log10(length - 1.5);
+        } else {
+            length = Math.round(length / 0.5) * 0.5;
+        }
 
         length = Math.max(length, 0.5);
-
-        if (length > 2.5) {
-            length = 2.5 + Math.log10(length - 1.5);
-        }
 
         length = Math.min(length, 3.5);
 
