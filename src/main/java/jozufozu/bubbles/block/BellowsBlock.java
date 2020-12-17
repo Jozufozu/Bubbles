@@ -7,6 +7,7 @@ import jozufozu.bubbles.util.ShapeUtil;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.state.BooleanProperty;
 import net.minecraft.state.DirectionProperty;
@@ -35,26 +36,36 @@ public class BellowsBlock extends Block {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final BooleanProperty TRIGGERED = BlockStateProperties.TRIGGERED;
 
-    public static final VoxelShape SHAPE_NORTH;
-    public static final VoxelShape SHAPE_SOUTH;
-    public static final VoxelShape SHAPE_EAST;
-    public static final VoxelShape SHAPE_WEST;
+    public static final VoxelShape[] UNPRESSED_SHAPES = new VoxelShape[4];
+    public static final VoxelShape[] PRESSED_SHAPES = new VoxelShape[4];
+    // public static final AxisAlignedBB DETECTION_AABB = new AxisAlignedBB(0d, 4d / 16d, 0d, 1d, 14d / 16d, 1d);
 
     static {
-        VoxelShape bottom = VoxelShapes.create(0d, 0d, 1d / 16d, 1d, 2d / 16d, 1d);
-        VoxelShape lip = VoxelShapes.create(0d, 2d / 16d, 1d / 16d, 1d, 4d / 16d, 3d / 16d);
+        VoxelShape bottom = Block.makeCuboidShape(0, 0, 1, 16, 2, 16);
+        VoxelShape lip = Block.makeCuboidShape(0, 2, 1, 16, 4, 3);
 
         VoxelShape base = VoxelShapes.combine(bottom, lip, IBooleanFunction.OR);
 
-        VoxelShape nozzleBase = VoxelShapes.create(6d / 16d, 0d, 0d, 10d / 16d, 4d / 16d, 1d / 16d);
-        VoxelShape nozzleSpout = VoxelShapes.create(7d / 16d, 1d / 16d, -2d / 16d, 9d / 16d, 3d / 16d, 0d);
+        VoxelShape nozzleBase = Block.makeCuboidShape(6, 0, 0, 10, 4, 1);
+        VoxelShape nozzleSpout = Block.makeCuboidShape(7, 1, -2, 9, 3, 0);
 
         VoxelShape nozzle = VoxelShapes.combine(nozzleSpout, nozzleBase, IBooleanFunction.OR);
 
-        SHAPE_NORTH = VoxelShapes.combineAndSimplify(base, nozzle, IBooleanFunction.OR);
-        SHAPE_SOUTH = ShapeUtil.rotateY(SHAPE_NORTH, 180);
-        SHAPE_WEST = ShapeUtil.rotateY(SHAPE_NORTH, 90);
-        SHAPE_EAST = ShapeUtil.rotateY(SHAPE_NORTH, 270);
+        VoxelShape northBase = VoxelShapes.combine(base, nozzle, IBooleanFunction.OR);
+
+        VoxelShape unpressedAccordion = Block.makeCuboidShape(0, 2, 3, 16, 10, 16);
+        VoxelShape unpressedNorth = VoxelShapes.combineAndSimplify(northBase, unpressedAccordion, IBooleanFunction.OR);
+        UNPRESSED_SHAPES[0] = ShapeUtil.rotateY(unpressedNorth, 180);
+        UNPRESSED_SHAPES[1] = ShapeUtil.rotateY(unpressedNorth, 90);
+        UNPRESSED_SHAPES[2] = unpressedNorth;
+        UNPRESSED_SHAPES[3] = ShapeUtil.rotateY(unpressedNorth, 270);
+
+        VoxelShape pressedAccordion = Block.makeCuboidShape(0, 2, 3, 16, 4, 16);
+        VoxelShape pressedNorth = VoxelShapes.combineAndSimplify(northBase, pressedAccordion, IBooleanFunction.OR);
+        PRESSED_SHAPES[0] = ShapeUtil.rotateY(pressedNorth, 180);
+        PRESSED_SHAPES[1] = ShapeUtil.rotateY(pressedNorth, 90);
+        PRESSED_SHAPES[2] = pressedNorth;
+        PRESSED_SHAPES[3] = ShapeUtil.rotateY(pressedNorth, 270);
     }
 
     public BellowsBlock() {
@@ -75,39 +86,32 @@ public class BellowsBlock extends Block {
     }
 
     @Override
-    public void onEntityCollision(BlockState state, World worldIn, BlockPos pos, Entity entityIn) {
-        if (!state.get(TRIGGERED)) {
-
-        }
-    }
-
-    @Override
-    public void tick(BlockState state, ServerWorld worldIn, BlockPos pos, Random rand) {
+    public void tick(BlockState state, ServerWorld world, BlockPos pos, Random rand) {
         Direction direction = state.get(FACING);
 
         int dX = direction.getXOffset();
         int dZ = direction.getZOffset();
 
-        worldIn.playSound(null, pos, Bubbles.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 1.0f, 0.95f + 0.1f * rand.nextFloat());
+        world.playSound(null, pos, Bubbles.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 1.0f, 0.95f + 0.1f * rand.nextFloat());
 
         AxisAlignedBB push = getPushZone(state, pos);
 
         double scale = 0.01;
         BubbleEntity.PushForce force = new BubbleEntity.PushForce(15, new Vector3d(dX * scale, 0, dZ * scale));
 
-        for (BubbleEntity bubble : worldIn.getEntitiesWithinAABB(BubbleEntity.class, push)) {
+        for (BubbleEntity bubble : world.getEntitiesWithinAABB(BubbleEntity.class, push)) {
             bubble.addForce(force.copy());
         }
 
         AxisAlignedBB front = new AxisAlignedBB(pos.offset(direction));
-        for (BubbleStandEntity stand : worldIn.getEntitiesWithinAABB(BubbleStandEntity.class, front)) {
+        for (BubbleStandEntity stand : world.getEntitiesWithinAABB(BubbleStandEntity.class, front)) {
 
             if (stand.getAttachmentBox().intersects(front))
                 stand.blowFrom(pos, dX, dZ, force.copy());
         }
     }
 
-    public AxisAlignedBB getPushZone(BlockState state, BlockPos pos) {
+    public static AxisAlignedBB getPushZone(BlockState state, BlockPos pos) {
         Direction direction = state.get(FACING);
 
         return new AxisAlignedBB(pos.offset(direction, 2)).grow(1, 0.5, 1);
@@ -126,14 +130,9 @@ public class BellowsBlock extends Block {
 
     @Override
     public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
-        Direction direction = state.get(FACING);
+        int i = state.get(FACING).getHorizontalIndex();
 
-        if (direction == Direction.NORTH) return SHAPE_NORTH;
-        if (direction == Direction.SOUTH) return SHAPE_SOUTH;
-        if (direction == Direction.EAST) return SHAPE_EAST;
-        if (direction == Direction.WEST) return SHAPE_WEST;
-
-        return VoxelShapes.empty();
+        return state.get(TRIGGERED) ? PRESSED_SHAPES[i] : UNPRESSED_SHAPES[i];
     }
 
     public BlockRenderType getRenderType(BlockState state) {

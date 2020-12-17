@@ -5,8 +5,10 @@ import jozufozu.bubbles.Bubbles;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.*;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.client.event.DrawHighlightEvent;
@@ -33,19 +35,24 @@ public final class ClientTickHandler {
 
     @SubscribeEvent
     public static void bellowsHighlight(DrawHighlightEvent.HighlightBlock event) {
-        if (!Minecraft.getInstance().player.isSneaking()) {
+        ClientPlayerEntity player = Minecraft.getInstance().player;
+        ClientWorld world = Minecraft.getInstance().world;
+
+        if (player == null || world == null) return;
+
+        if (!player.isSneaking()) {
             return;
         }
 
         BlockRayTraceResult target = event.getTarget();
 
         BlockPos pos = target.getPos();
-        BlockState state = Minecraft.getInstance().world.getBlockState(pos);
+        BlockState state = world.getBlockState(pos);
 
         Block block = state.getBlock();
         if (block instanceof BellowsBlock) {
             Vector3d view = event.getInfo().getProjectedView();
-            AxisAlignedBB pushZone = ((BellowsBlock) block).getPushZone(state, pos).offset(-view.x, -view.y, -view.z);
+            AxisAlignedBB pushZone = BellowsBlock.getPushZone(state, pos).offset(-view.x, -view.y, -view.z);
 
             WorldRenderer.drawBoundingBox(event.getMatrix(), event.getBuffers().getBuffer(RenderType.getLines()), pushZone, 1f, 1f, 1f, 0.5f);
         }

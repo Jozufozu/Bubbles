@@ -90,7 +90,7 @@ public class BubblePlate extends Block implements ISafeBlock {
      * Note that this method should ideally consider only the specific face passed in.
      */
     public BlockState updatePostPlacement(BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) {
-        return facing == Direction.DOWN && !stateIn.isValidPosition(worldIn, currentPos) ? Blocks.AIR.getDefaultState() : super.updatePostPlacement(stateIn, facing, facingState, worldIn, currentPos, facingPos);
+        return !stateIn.isValidPosition(worldIn, currentPos) ? Blocks.AIR.getDefaultState() : stateIn;
     }
 
     public boolean isValidPosition(BlockState state, IWorldReader worldIn, BlockPos pos) {
@@ -138,7 +138,6 @@ public class BubblePlate extends Block implements ISafeBlock {
         if (flag1) {
             worldIn.getPendingBlockTicks().scheduleTick(pos.toImmutable(), this, 20);
         }
-
     }
 
     public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {

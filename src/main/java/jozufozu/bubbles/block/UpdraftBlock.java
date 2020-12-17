@@ -34,10 +34,10 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 public class UpdraftBlock extends Block {
     public static final Material MATERIAL = new Material(MaterialColor.AIR, false, false, false, false, false, true, PushReaction.DESTROY);
 
-    public static final BooleanProperty DOWNDRAFT = BlockStateProperties.DRAG;
+    public static final BooleanProperty DOWNDRAFT = BooleanProperty.create("downdraft");
 
     public UpdraftBlock() {
-        super(Properties.create(MATERIAL).setAir());
+        super(Properties.create(MATERIAL).doesNotBlockMovement().noDrops());
         this.setDefaultState(this.stateContainer.getBaseState().with(DOWNDRAFT, Boolean.FALSE));
     }
 
@@ -72,6 +72,10 @@ public class UpdraftBlock extends Block {
 
     public void tick(BlockState state, ServerWorld worldIn, BlockPos pos, Random rand) {
         placeUpdraft(worldIn, pos.up(), isDowndraft(worldIn, pos));
+
+        if (!state.isValidPosition(worldIn, pos)) {
+            worldIn.setBlockState(pos, Blocks.AIR.getDefaultState());
+        }
     }
 
     public static void placeUpdraft(IWorld world, BlockPos pos, boolean drag) {
@@ -104,8 +108,8 @@ public class UpdraftBlock extends Block {
                 worldIn.playSound(d0, d1, d2, SoundEvents.BLOCK_BUBBLE_COLUMN_WHIRLPOOL_AMBIENT, SoundCategory.BLOCKS, 0.2F + rand.nextFloat() * 0.2F, 0.9F + rand.nextFloat() * 0.15F, false);
             }
         } else {
-            worldIn.addOptionalParticle(ParticleTypes.CAMPFIRE_COSY_SMOKE, d0 + 0.5D, d1, d2 + 0.5D, 0.0D, 0.04D, 0.0D);
-            worldIn.addOptionalParticle(ParticleTypes.CAMPFIRE_COSY_SMOKE, d0 + (double)rand.nextFloat(), d1 + (double)rand.nextFloat(), d2 + (double)rand.nextFloat(), 0.0D, 0.04D, 0.0D);
+            worldIn.addParticle(ParticleTypes.POOF, d0 + 0.5D, d1, d2 + 0.5D, 0.0D, 0.06D, 0.0D);
+            worldIn.addParticle(ParticleTypes.POOF, d0 + (double)rand.nextFloat(), d1 + (double)rand.nextFloat(), d2 + (double)rand.nextFloat(), 0.0D, 0.06D, 0.0D);
             if (rand.nextInt(200) == 0) {
                 worldIn.playSound(d0, d1, d2, SoundEvents.BLOCK_BUBBLE_COLUMN_UPWARDS_AMBIENT, SoundCategory.BLOCKS, 0.2F + rand.nextFloat() * 0.2F, 0.9F + rand.nextFloat() * 0.15F, false);
             }
@@ -121,16 +125,16 @@ public class UpdraftBlock extends Block {
      */
     public BlockState updatePostPlacement(BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) {
         if (!stateIn.isValidPosition(worldIn, currentPos)) {
-            return Blocks.AIR.getDefaultState();
+            worldIn.getPendingBlockTicks().scheduleTick(currentPos, this, 1);
         } else {
             if (facing == Direction.DOWN) {
                 worldIn.setBlockState(currentPos, ModBlocks.UPDRAFT.get().getDefaultState().with(DOWNDRAFT, isDowndraft(worldIn, facingPos)), 2);
             } else if (facing == Direction.UP && !facingState.isIn(ModBlocks.UPDRAFT.get()) && canHoldUpdraft(worldIn, facingPos)) {
                 worldIn.getPendingBlockTicks().scheduleTick(currentPos, this, 5);
             }
-
-            return super.updatePostPlacement(stateIn, facing, facingState, worldIn, currentPos, facingPos);
         }
+
+        return stateIn;
     }
 
     public boolean isValidPosition(BlockState state, IWorldReader worldIn, BlockPos pos) {

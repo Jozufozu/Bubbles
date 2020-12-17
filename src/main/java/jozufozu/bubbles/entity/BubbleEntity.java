@@ -438,7 +438,7 @@ public class BubbleEntity extends Entity {
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
         this.pop();
-        return true;
+        return false;
     }
 
     @Override
