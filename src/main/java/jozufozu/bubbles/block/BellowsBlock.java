@@ -6,8 +6,6 @@ import jozufozu.bubbles.entity.BubbleStandEntity;
 import jozufozu.bubbles.util.ShapeUtil;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.state.BooleanProperty;
 import net.minecraft.state.DirectionProperty;
@@ -29,7 +27,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Random;
 
 public class BellowsBlock extends Block {
@@ -87,23 +84,36 @@ public class BellowsBlock extends Block {
 
     @Override
     public void tick(BlockState state, ServerWorld world, BlockPos pos, Random rand) {
+        blow(state, world, pos, rand);
+    }
+
+    private void blow(BlockState state, ServerWorld world, BlockPos pos, Random rand) {
+        world.playSound(null, pos, Bubbles.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 1.0f, 0.95f + 0.1f * rand.nextFloat());
+
         Direction direction = state.get(FACING);
+
+        BlockPos inFront = pos.offset(direction);
+        BlockState stateInFront = world.getBlockState(inFront);
+        if (stateInFront.isIn(Blocks.SOUL_FIRE) || stateInFront.isIn(ModBlocks.BLAZING_SOUL_FIRE.get())) {
+            world.playSound(null, inFront, Bubbles.SOUL_BURN.get(), SoundCategory.BLOCKS, 0.4f, 0.8f + 0.8f * rand.nextFloat());
+            world.setBlockState(inFront, ModBlocks.BLAZING_SOUL_FIRE.get().getDefaultState());
+
+            return;
+        }
 
         int dX = direction.getXOffset();
         int dZ = direction.getZOffset();
 
-        world.playSound(null, pos, Bubbles.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 1.0f, 0.95f + 0.1f * rand.nextFloat());
-
         AxisAlignedBB push = getPushZone(state, pos);
 
         double scale = 0.01;
-        BubbleEntity.PushForce force = new BubbleEntity.PushForce(15, new Vector3d(dX * scale, 0, dZ * scale));
+        BubbleEntity.PushForce force = new BubbleEntity.PushForce(15, dX * scale, 0, dZ * scale);
 
         for (BubbleEntity bubble : world.getEntitiesWithinAABB(BubbleEntity.class, push)) {
             bubble.addForce(force.copy());
         }
 
-        AxisAlignedBB front = new AxisAlignedBB(pos.offset(direction));
+        AxisAlignedBB front = new AxisAlignedBB(inFront);
         for (BubbleStandEntity stand : world.getEntitiesWithinAABB(BubbleStandEntity.class, front)) {
 
             if (stand.getAttachmentBox().intersects(front))

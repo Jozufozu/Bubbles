@@ -7,5 +7,12 @@
             "bubbles:bellows_blow2",
             "bubbles:bellows_blow3"
         ]
+    },
+    "soul_burn": {
+        "category": "block",
+        "subtitle": "bubbles.subtitle.soul_burn",
+        "sounds": [
+            "bubbles:soul_burn"
+        ]
     }
 }

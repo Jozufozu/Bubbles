@@ -2,9 +2,6 @@ package jozufozu.bubbles.block;
 
 import jozufozu.bubbles.Bubbles;
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
-import net.minecraft.block.material.PushReaction;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
@@ -22,8 +19,7 @@ public class ModBlocks {
 
     public static final RegistryObject<Block> UPDRAFT = BLOCKS.register("updraft", UpdraftBlock::new);
 
-    public static final RegistryObject<Block> UPDRAFT_SOURCE = BLOCKS.register("updraft_source", UpdraftSource::new);
-    public static final RegistryObject<Item> UPDRAFT_SOURCE_ITEM = Bubbles.ITEMS.register("updraft_source", () -> new BlockItem(UPDRAFT_SOURCE.get(), new Item.Properties().group(ItemGroup.MISC)));
+    public static final RegistryObject<Block> BLAZING_SOUL_FIRE = BLOCKS.register("blazing_soul_fire", BlazingSoulFireBlock::new);
 
     public static final RegistryObject<Block> BUBBLE_PLATE = BLOCKS.register("bubble_plate", BubblePlate::new);
     public static final RegistryObject<Item> BUBBLE_PLATE_ITEM = Bubbles.ITEMS.register("bubble_plate", () -> new BlockItem(BUBBLE_PLATE.get(), new Item.Properties().group(ItemGroup.MISC)));

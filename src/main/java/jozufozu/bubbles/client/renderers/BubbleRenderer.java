@@ -9,6 +9,7 @@ import net.minecraft.util.ResourceLocation;
 import jozufozu.bubbles.client.EntityRendererWithBubbleParts;
 import jozufozu.bubbles.client.FancyRenderedModel;
 import jozufozu.bubbles.entity.BubbleEntity;
+import net.minecraft.util.math.vector.Vector3d;
 
 public class BubbleRenderer extends EntityRendererWithBubbleParts<BubbleEntity> {
     private static final ResourceLocation TEXTURE = new ResourceLocation("bubbles:textures/entity/bubble.png");
@@ -18,7 +19,6 @@ public class BubbleRenderer extends EntityRendererWithBubbleParts<BubbleEntity> 
     public BubbleRenderer(EntityRendererManager renderManager) {
         super(renderManager);
     }
-
 
     @Override
     public ResourceLocation getEntityTexture(BubbleEntity entity) {

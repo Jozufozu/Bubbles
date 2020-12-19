@@ -18,6 +18,7 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.shapes.IBooleanFunction;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.math.shapes.VoxelShapes;
+import net.minecraft.util.math.vector.Quaternion;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.network.NetworkHooks;
@@ -47,7 +48,7 @@ public class BubbleEntity extends Entity {
     }
 
     public BubbleEntity(World worldIn, double x, double y, double z, @Nullable PushForce spawnForce) {
-        super(BUBBLE, worldIn);
+        this(BUBBLE, worldIn);
 
         this.setPosition(x, y, z);
         if (spawnForce != null) this.forces.add(spawnForce);
@@ -487,10 +488,6 @@ public class BubbleEntity extends Entity {
             this.x = other.x;
             this.y = other.y;
             this.z = other.z;
-        }
-
-        public PushForce(int time, Vector3d force) {
-            this(time, force.x, force.y, force.z);
         }
 
         public PushForce(int time, double x, double y, double z) {
