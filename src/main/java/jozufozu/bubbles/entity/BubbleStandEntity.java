@@ -1,8 +1,8 @@
 package jozufozu.bubbles.entity;
 
 import jozufozu.bubbles.Bubbles;
+import jozufozu.bubbles.entity.behavior.StandAttachment;
 import net.minecraft.entity.*;
-import net.minecraft.entity.monster.EndermanEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
@@ -18,15 +18,10 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.math.vector.Vector3i;
 import net.minecraft.world.World;
-import net.minecraftforge.event.entity.EntityEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.network.NetworkHooks;
 
 import javax.annotation.Nullable;
-import java.util.Vector;
 
 public class BubbleStandEntity extends Entity {
     @SuppressWarnings("unchecked")
@@ -38,7 +33,7 @@ public class BubbleStandEntity extends Entity {
     private static final DataParameter<Direction> ORIENTATION = EntityDataManager.createKey(BubbleStandEntity.class, DataSerializers.DIRECTION);
     private static final DataParameter<Float> LENGTH = EntityDataManager.createKey(BubbleStandEntity.class, DataSerializers.FLOAT);
     public static final float DEFAULT_LENGTH = 0.5f;
-    //private static final DataParameter<Integer> ATTACHMENT = EntityDataManager.createKey(BubbleStandEntity.class, DataSerializers.OPTIONAL_UNIQUE_ID);
+    private static final DataParameter<StandAttachment> ATTACHMENT = EntityDataManager.createKey(BubbleStandEntity.class, Serializers.STAND_ATTACHMENT);
 
     @Nullable
     private PlayerEntity altering;
@@ -65,6 +60,7 @@ public class BubbleStandEntity extends Entity {
     protected void registerData() {
         this.dataManager.register(ORIENTATION, Direction.UP);
         this.dataManager.register(LENGTH, DEFAULT_LENGTH);
+        this.dataManager.register(ATTACHMENT, StandAttachment.WAND);
     }
 
     public Direction getOrientation() {
@@ -73,6 +69,14 @@ public class BubbleStandEntity extends Entity {
 
     public void setOrientation(Direction orientation) {
         this.dataManager.set(ORIENTATION, orientation);
+    }
+
+    public StandAttachment getAttachment() {
+        return this.dataManager.get(ATTACHMENT);
+    }
+
+    public void setAttachment(StandAttachment attachment) {
+        this.dataManager.set(ATTACHMENT, attachment);
     }
 
     public float getLength() {
@@ -112,7 +116,10 @@ public class BubbleStandEntity extends Entity {
         this.lastTickLength = this.getLength();
 
         if (altering != null) {
-            adjustLength(altering);
+            if (altering.isSneaking())
+                adjustLength(altering);
+            else
+                altering = null;
         } else if (getLength() > 2.5) {
             setLength(2.5f);
         }

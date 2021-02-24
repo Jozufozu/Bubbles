@@ -1,26 +1,26 @@
 package jozufozu.bubbles.entity;
 
+import jozufozu.bubbles.entity.behavior.Behaviors;
 import jozufozu.bubbles.util.Collider;
 import jozufozu.bubbles.util.CollisionUtil;
 import net.minecraft.block.Block;
-import net.minecraft.command.arguments.EntityAnchorArgument;
 import net.minecraft.entity.*;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.network.IPacket;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.shapes.IBooleanFunction;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.util.math.vector.Quaternion;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.fml.network.NetworkHooks;
 import jozufozu.bubbles.block.ISafeBlock;
 
@@ -31,10 +31,10 @@ public class BubbleEntity extends Entity {
     @SuppressWarnings("unchecked")
     public static final EntityType<BubbleEntity> BUBBLE = (EntityType<BubbleEntity>) EntityType.Builder.create(BubbleEntity::new, EntityClassification.MISC)
                                                                                                        .size(0.5f, 0.5f)
+                                                                                                       .setShouldReceiveVelocityUpdates(true)
                                                                                                        .build("bubbles:bubble")
                                                                                                        .setRegistryName("bubbles:bubble");
 
-    public static final DataParameter<BubbleState> STATE = EntityDataManager.createKey(BubbleEntity.class, Serializers.BUBBLE_STATE);
     public static final DataParameter<Float> EMPTY_SIZE = EntityDataManager.createKey(BubbleEntity.class, DataSerializers.FLOAT);
 
     private final ArrayList<PushForce> forces = new ArrayList<>();
@@ -60,7 +60,6 @@ public class BubbleEntity extends Entity {
 
     @Override
     protected void registerData() {
-        this.dataManager.register(STATE, BubbleState.EMPTY);
         this.dataManager.register(EMPTY_SIZE, BUBBLE.getWidth());
     }
 
@@ -119,16 +118,19 @@ public class BubbleEntity extends Entity {
 
         forces.removeIf(PushForce::expired);
 
-        if (Math.abs(dy) > 0.03) {
-            dy -= Math.signum(dy) * 0.03;
-        } else {
+        boolean noHorizontal = Math.abs(dx) + Math.abs(dz) < 1e-4;
+        if (noHorizontal && dy > -0.1) {
+            dy -= 0.005;
+        } else if (dy > 0.03) {
+            dy -= 0.01;
+        } else if (!noHorizontal) {
             dy = 0;
         }
 
         return new Vector3d(dx, dy, dz);
     }
 
-    private void handleBubbleStandCollision(BubbleStandEntity stand) {
+    protected void handleBubbleStandCollision(BubbleStandEntity stand) {
         Entity containedEntity = this.getContainedEntity();
         if (containedEntity == null) return;
 
@@ -139,11 +141,80 @@ public class BubbleEntity extends Entity {
         }
     }
 
+
+    protected boolean canCollideWithEntity(Entity entity) {
+        return true;
+    }
+
+    protected void onCollideWithEntity(Entity entity) {
+        if (entity.startRiding(this)) {
+            Behaviors.doMountBehavior(this, entity);
+
+            this.recalculateSize();
+        }
+    }
+
+
+    public boolean canCombine(BubbleEntity other) {
+        return false;
+        //        Entity thisEntity = this.getContainedEntity();
+        //        Entity otherEntity = other.getContainedEntity();
+        //        if (thisEntity instanceof ItemEntity && otherEntity instanceof ItemEntity) {
+        //            ItemStack thisItem = ((ItemEntity) thisEntity).getItem();
+        //            ItemStack otherItem = ((ItemEntity) otherEntity).getItem();
+        //
+        //            if (ItemEntity.canMergeStacks(thisItem, otherItem)) {
+        //                ItemStack copy = otherItem.copy();
+        //                ItemStack merged = ItemEntity.mergeStacks(thisItem, copy, 64);
+        //
+        //                if (copy.isEmpty()) {
+        //                    if (!world.isRemote) {
+        //                        otherEntity.remove();
+        //                        ((ItemEntity) thisEntity).setItem(merged);
+        //                    }
+        //
+        //                    return true;
+        //                }
+        //            }
+        //        }
+        //
+        //        return thisEntity == null && otherEntity == null;
+    }
+
+    public void combineAll(ArrayList<BubbleEntity> other) {
+
+        //        Vector3d otherPos = other.getPositionVec();
+        //        Vector3d otherMotion = other.getMotion();
+        //
+        //        BubbleEntity entity = BUBBLE.create(world);
+        //
+        //        if (entity == null) entity = this;
+        //
+        //        double thisSize = this.getEmptySize();
+        //        double otherSize = other.getEmptySize();
+        //
+        //        double size = Math.cbrt(thisSize * thisSize * thisSize + otherSize * otherSize * otherSize);
+        //
+        //        entity.setEmptySize((float) size);
+        //        entity.setMotion(motion.x + otherMotion.x, motion.y + otherMotion.y, motion.z + otherMotion.z);
+        //        entity.setPosition((position.x + otherPos.x) * 0.5, (position.y + otherPos.y) * 0.5, (position.z + otherPos.z) * 0.5);
+        //        entity.forces.addAll(other.forces);
+        //
+        //        other.remove();
+        //
+        //        if (entity != this) {
+        //            this.remove();
+        //            entity.forces.addAll(this.forces);
+        //
+        //            world.addEntity(entity);
+        //        }
+    }
+
     private void moveAndCollide(Vector3d motion) {
         AxisAlignedBB box = this.getBoundingBox();
 
         ArrayList<Collider.BlockCollider> blocks = new ArrayList<>();
-        AxisAlignedBB checkZone = box.union(box.offset(motion));
+        AxisAlignedBB checkZone = box.union(box.offset(motion)).grow(0.5);
         CollisionUtil.makeBlockColliderIterator(world, this, checkZone).forEachRemaining(blocks::add);
 
         // this bubble should pop if it ends up inside a block somehow
@@ -173,8 +244,6 @@ public class BubbleEntity extends Entity {
         double stepY = motion.y / ((double) steps);
         double stepZ = motion.z / ((double) steps);
 
-        boolean hasRider = this.passengers.size() > 0;
-
         ArrayList<BubbleEntity> combineWith = new ArrayList<>();
 
         main: for (int i = 0; i < steps; i++) {
@@ -199,18 +268,14 @@ public class BubbleEntity extends Entity {
 
                 AxisAlignedBB entityBoundingBox = entity.getBoundingBox();
 
-                if (!hasRider && entityBoundingBox.intersects(minX - 0.2, minY - 0.2, minZ - 0.2, maxX + 0.2, maxY + 0.2, maxZ + 0.2)) {
+                if (entityBoundingBox.intersects(minX - 0.2, minY - 0.2, minZ - 0.2, maxX + 0.2, maxY + 0.2, maxZ + 0.2)) {
                     if (entity instanceof BubbleEntity) {
                         BubbleEntity other = (BubbleEntity) entity;
                         if (this.canCombine(other)) combineWith.add(other);
                     } else if (entity instanceof BubbleStandEntity) {
                         handleBubbleStandCollision((BubbleStandEntity) entity);
-                    } else if (!world.isRemote && entity.startRiding(this)) {
-                        Behaviors.doMountBehavior(this, entity);
-
-                        this.recalculateSize();
-
-                        hasRider = true;
+                    } else if (!world.isRemote && canCollideWithEntity(entity)) {
+                        onCollideWithEntity(entity);
                     }
 
                     scanEntities.remove();
@@ -245,21 +310,21 @@ public class BubbleEntity extends Entity {
 
                         collided = true;
 
-                        double nudgeX = getNudge(minX, maxX, stepX, bb.minX, bb.maxX) * 1.01;
-                        double nudgeY = getNudge(minY, maxY, stepY, bb.minY, bb.maxY) * 1.01;
-                        double nudgeZ = getNudge(minZ, maxZ, stepZ, bb.minZ, bb.maxZ) * 1.01;
+                        double nudgeX = getNudge(minX, maxX, stepX, bb.minX, bb.maxX) * 1.06;
+                        double nudgeY = getNudge(minY, maxY, stepY, bb.minY, bb.maxY) * 1.06;
+                        double nudgeZ = getNudge(minZ, maxZ, stepZ, bb.minZ, bb.maxZ) * 1.06;
 
-                        if (Math.abs(nudgeX) > 1e-7) {
+                        if (!Double.isNaN(nudgeX)) {
                             minX -= nudgeX;
                             maxX -= nudgeX;
                             stepX = 0;
                         }
-                        if (Math.abs(nudgeY) > 1e-7) {
+                        if (!Double.isNaN(nudgeY)) {
                             minY -= nudgeY;
                             maxY -= nudgeY;
                             stepY = 0;
                         }
-                        if (Math.abs(nudgeZ) > 1e-7) {
+                        if (!Double.isNaN(nudgeZ)) {
                             minZ -= nudgeZ;
                             maxZ -= nudgeZ;
                             stepZ = 0;
@@ -297,62 +362,7 @@ public class BubbleEntity extends Entity {
                 return nudge;
             }
         }
-        return 0.0;
-    }
-
-    public boolean canCombine(BubbleEntity other) {
-        return false;
-//        Entity thisEntity = this.getContainedEntity();
-//        Entity otherEntity = other.getContainedEntity();
-//        if (thisEntity instanceof ItemEntity && otherEntity instanceof ItemEntity) {
-//            ItemStack thisItem = ((ItemEntity) thisEntity).getItem();
-//            ItemStack otherItem = ((ItemEntity) otherEntity).getItem();
-//
-//            if (ItemEntity.canMergeStacks(thisItem, otherItem)) {
-//                ItemStack copy = otherItem.copy();
-//                ItemStack merged = ItemEntity.mergeStacks(thisItem, copy, 64);
-//
-//                if (copy.isEmpty()) {
-//                    if (!world.isRemote) {
-//                        otherEntity.remove();
-//                        ((ItemEntity) thisEntity).setItem(merged);
-//                    }
-//
-//                    return true;
-//                }
-//            }
-//        }
-//
-//        return thisEntity == null && otherEntity == null;
-    }
-
-    public void combineAll(ArrayList<BubbleEntity> other) {
-
-//        Vector3d otherPos = other.getPositionVec();
-//        Vector3d otherMotion = other.getMotion();
-//
-//        BubbleEntity entity = BUBBLE.create(world);
-//
-//        if (entity == null) entity = this;
-//
-//        double thisSize = this.getEmptySize();
-//        double otherSize = other.getEmptySize();
-//
-//        double size = Math.cbrt(thisSize * thisSize * thisSize + otherSize * otherSize * otherSize);
-//
-//        entity.setEmptySize((float) size);
-//        entity.setMotion(motion.x + otherMotion.x, motion.y + otherMotion.y, motion.z + otherMotion.z);
-//        entity.setPosition((position.x + otherPos.x) * 0.5, (position.y + otherPos.y) * 0.5, (position.z + otherPos.z) * 0.5);
-//        entity.forces.addAll(other.forces);
-//
-//        other.remove();
-//
-//        if (entity != this) {
-//            this.remove();
-//            entity.forces.addAll(this.forces);
-//
-//            world.addEntity(entity);
-//        }
+        return Double.NaN;
     }
 
     public void addForce(PushForce force) {
@@ -459,12 +469,20 @@ public class BubbleEntity extends Entity {
 
     @Override
     protected void readAdditional(CompoundNBT compound) {
+        setEmptySize(compound.getFloat("emptySize"));
 
+        this.forces.clear();
+        ListNBT list = compound.getList("forces", Constants.NBT.TAG_COMPOUND);
+        for (INBT force : list) this.forces.add(new PushForce((CompoundNBT) force));
     }
 
     @Override
     protected void writeAdditional(CompoundNBT compound) {
+        compound.putFloat("emptySize", this.getEmptySize());
 
+        ListNBT forces = new ListNBT();
+        for (PushForce force : this.forces) forces.add(force.serializeNBT());
+        compound.put("forces", forces);
     }
 
     @Override
@@ -477,11 +495,15 @@ public class BubbleEntity extends Entity {
         return false;
     }
 
-    public static class PushForce {
+    public static class PushForce implements INBTSerializable<CompoundNBT> {
         public int time;
         public double x;
         public double y;
         public double z;
+
+        public PushForce(CompoundNBT nbt) {
+            this.deserializeNBT(nbt);
+        }
 
         public PushForce(PushForce other) {
             this.time = other.time;
@@ -503,6 +525,24 @@ public class BubbleEntity extends Entity {
 
         public PushForce copy() {
             return new PushForce(this);
+        }
+
+        @Override
+        public CompoundNBT serializeNBT() {
+            CompoundNBT nbt = new CompoundNBT();
+            nbt.putInt("time", time);
+            nbt.putDouble("x", x);
+            nbt.putDouble("y", y);
+            nbt.putDouble("z", z);
+            return nbt;
+        }
+
+        @Override
+        public void deserializeNBT(CompoundNBT nbt) {
+            time = nbt.getInt("time");
+            x = nbt.getDouble("x");
+            y = nbt.getDouble("y");
+            z = nbt.getDouble("z");
         }
     }
 }

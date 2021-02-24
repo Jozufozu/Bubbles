@@ -15,7 +15,7 @@ public class UpdraftSwirlParticle extends UpdraftParticle {
         this.motionX = motionX * (double)0.2F + (Math.random() * 2.0D - 1.0D) * (double)0.02F;
         this.motionY = motionY + (Math.random() * 2.0D - 1.0D) * (double)0.02F;
         this.motionZ = motionZ * (double)0.2F + (Math.random() * 2.0D - 1.0D) * (double)0.02F;
-        this.maxAge = 20;
+        this.maxAge = 28;
         this.selectSpriteWithAge(spriteWithAge);
     }
 

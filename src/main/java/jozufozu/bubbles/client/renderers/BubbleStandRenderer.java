@@ -3,6 +3,7 @@ package jozufozu.bubbles.client.renderers;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.vertex.IVertexBuilder;
 import jozufozu.bubbles.entity.BubbleStandEntity;
+import jozufozu.bubbles.entity.behavior.StandAttachment;
 import net.minecraft.client.renderer.IRenderTypeBuffer;
 import net.minecraft.client.renderer.entity.EntityRendererManager;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -17,16 +18,19 @@ import jozufozu.bubbles.client.FancyRenderedModel;
 public class BubbleStandRenderer extends EntityRendererWithBubbleParts<BubbleStandEntity> {
     public static final ResourceLocation STAND_BASE = new ResourceLocation("bubbles:textures/entity/bubble_stand.png");
     public static final ResourceLocation BUBBLE_RING = new ResourceLocation("bubbles:textures/entity/bubble_ring.png");
+    public static final ResourceLocation CRAFTING_LATTICE = new ResourceLocation("bubbles:textures/entity/crafting_lattice.png");
     public static final ResourceLocation FILM = new ResourceLocation("bubbles:textures/entity/bubble_film.png");
 
     public BubbleStandModel base;
     public BubbleRingModel ring;
+    public CraftingLatticeModel lattice;
     public FilmModel film;
 
     public BubbleStandRenderer(EntityRendererManager renderManager) {
         super(renderManager);
 
         this.base = new BubbleStandModel();
+        this.lattice = new CraftingLatticeModel();
         this.ring = new BubbleRingModel();
         this.film = new BubbleStandRenderer.FilmModel();
     }
@@ -48,8 +52,13 @@ public class BubbleStandRenderer extends EntityRendererWithBubbleParts<BubbleSta
 
         matrixStackIn.translate(0, length, 0);
 
-        IVertexBuilder ringBuffer = bufferIn.getBuffer(this.ring.getRenderType(BUBBLE_RING));
-        this.ring.render(matrixStackIn, ringBuffer, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        if (stand.getAttachment() == StandAttachment.WAND) {
+            IVertexBuilder ringBuffer = bufferIn.getBuffer(this.ring.getRenderType(BUBBLE_RING));
+            this.ring.render(matrixStackIn, ringBuffer, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        } else if (stand.getAttachment() == StandAttachment.CRAFTING) {
+            IVertexBuilder ringBuffer = bufferIn.getBuffer(this.lattice.getRenderType(CRAFTING_LATTICE));
+            this.lattice.render(matrixStackIn, ringBuffer, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        }
 
         matrixStackIn.pop();
         matrixStackIn.pop();
@@ -57,16 +66,18 @@ public class BubbleStandRenderer extends EntityRendererWithBubbleParts<BubbleSta
 
     @Override
     public void renderBubbleParts(BubbleStandEntity stand, float entityYaw, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn, int packedLightIn) {
-        matrixStackIn.push();
+        if (stand.getAttachment() == StandAttachment.WAND) {
+            matrixStackIn.push();
 
-        applyRotation(stand, entityYaw, partialTicks, matrixStackIn);
-        double length = MathHelper.lerp(partialTicks, stand.lastTickLength, stand.getLength());
+            applyRotation(stand, entityYaw, partialTicks, matrixStackIn);
+            double length = MathHelper.lerp(partialTicks, stand.lastTickLength, stand.getLength());
 
-        matrixStackIn.translate(0, length, 0);
+            matrixStackIn.translate(0, length, 0);
 
-        IVertexBuilder ivertexbuilder = bufferIn.getBuffer(this.film.getRenderType(FILM));
-        this.film.render(matrixStackIn, ivertexbuilder, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
-        matrixStackIn.pop();
+            IVertexBuilder ivertexbuilder = bufferIn.getBuffer(this.film.getRenderType(FILM));
+            this.film.render(matrixStackIn, ivertexbuilder, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+            matrixStackIn.pop();
+        }
     }
 
     private void applyRotation(BubbleStandEntity entityIn, float entityYaw, float partialTicks, MatrixStack matrixStackIn) {

@@ -35,7 +35,7 @@ public class UpdraftBlock extends Block {
     public void onEntityCollision(BlockState state, World worldIn, BlockPos pos, Entity entityIn) {
         if (entityIn instanceof BubbleEntity || entityIn instanceof ItemEntity) {
             Vector3d vector3d = entityIn.getMotion();
-            double d0 = Math.min(0.3D, vector3d.y + 0.02D);
+            double d0 = Math.min(0.3D, vector3d.y + 0.04D);
 
             entityIn.setMotion(vector3d.x, d0, vector3d.z);
             entityIn.fallDistance = 0.0F;

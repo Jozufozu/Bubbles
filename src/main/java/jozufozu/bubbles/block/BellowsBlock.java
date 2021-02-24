@@ -88,7 +88,7 @@ public class BellowsBlock extends Block {
     }
 
     private void blow(BlockState state, ServerWorld world, BlockPos pos, Random rand) {
-        world.playSound(null, pos, Bubbles.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 1.0f, 0.95f + 0.1f * rand.nextFloat());
+        world.playSound(null, pos, Bubbles.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 0.8f, 0.95f + 0.1f * rand.nextFloat());
 
         Direction direction = state.get(FACING);
 

@@ -5,7 +5,7 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.IVertexBuilder;
 import jozufozu.bubbles.client.shader.Shader;
-import jozufozu.bubbles.client.shader.ShaderWrappedRenderLayer;
+import jozufozu.bubbles.client.shader.ShaderWrappedRenderType;
 import net.minecraft.client.renderer.RenderState;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.model.Model;
@@ -40,7 +40,7 @@ public abstract class FancyRenderedModel extends Model {
                                                  .build(true);
         RenderType normal = RenderType.makeType("bubbles:bubble", DefaultVertexFormats.ENTITY, 7, 256, true, true, state);
 
-        return new ShaderWrappedRenderLayer(Shader.BUBBLE, null, normal);
+        return new ShaderWrappedRenderType(Shader.BUBBLE, normal);
     }
 
     protected TexturedQuad[] quads;

@@ -1,9 +1,11 @@
 package jozufozu.bubbles.client;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
+import jozufozu.bubbles.client.shader.ShaderWrappedRenderType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.culling.ClippingHelper;
 import net.minecraft.client.renderer.entity.EntityRenderer;

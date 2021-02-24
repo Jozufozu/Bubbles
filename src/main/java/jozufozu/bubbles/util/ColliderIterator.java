@@ -3,6 +3,7 @@ package jozufozu.bubbles.util;
 import java.util.*;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -68,6 +69,8 @@ public class ColliderIterator implements Iterator<Collider.BlockCollider> {
 
                 this.mutablePos.setPos(x, y, z);
                 BlockState state = chunkReader.getBlockState(this.mutablePos);
+
+                if (state.isIn(Blocks.AIR)) continue;
                 //            if (boundariesTouched == 1 && !state.isCollisionShapeLargerThanFullBlock() || boundariesTouched == 2 && !state.isIn(Blocks.MOVING_PISTON)) {
                 //               continue;
                 //            }

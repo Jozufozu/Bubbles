@@ -59,7 +59,7 @@ public class BlazingSoulFireBlock extends AbstractFireBlock {
             worldIn.getPendingBlockTicks().scheduleTick(currentPos, this, 20);
         }
 
-        return this.isValidPosition(stateIn, worldIn, currentPos) ? this.getDefaultState() : Blocks.AIR.getDefaultState();
+        return this.isValidPosition(stateIn, worldIn, currentPos) ? stateIn : Blocks.AIR.getDefaultState();
     }
 
     public void onBlockAdded(BlockState state, World worldIn, BlockPos pos, BlockState oldState, boolean isMoving) {

@@ -31,7 +31,7 @@ import java.util.Random;
 public class BubblePlate extends Block implements ISafeBlock {
     protected static final VoxelShape[] UNPRESSED_SHAPES = new VoxelShape[6];
     protected static final VoxelShape[] PRESSED_SHAPES = new VoxelShape[6];
-    protected static final AxisAlignedBB DETECTION_AABB = new AxisAlignedBB(0.125, 0.125, 0.125, 0.875, 0.875, 0.875);
+    protected static final AxisAlignedBB DETECTION_AABB = new AxisAlignedBB(0.0625, 0.0625, 0.0625, 0.9375, 0.9375, 0.9375);
 
     static {
         VoxelShape pressedNorth = Block.makeCuboidShape(1, 1, 0, 15, 15, 1);

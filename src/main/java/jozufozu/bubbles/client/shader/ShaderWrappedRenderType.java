@@ -10,24 +10,30 @@ package jozufozu.bubbles.client.shader;
 
 import net.minecraft.client.renderer.RenderType;
 import jozufozu.bubbles.Bubbles;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 
 import javax.annotation.Nullable;
 
 import java.util.Objects;
 import java.util.Optional;
 
-public class ShaderWrappedRenderLayer extends RenderType {
+public class ShaderWrappedRenderType extends RenderType {
+    public static final ShaderWrappedRenderType BUBBLE = makeBlockLayer(Shader.BUBBLE);
+
+    private static ShaderWrappedRenderType makeBlockLayer(Shader shader) {
+        RenderType.State state = RenderType.State.getBuilder().shadeModel(SHADE_ENABLED).lightmap(LIGHTMAP_ENABLED).texture(BLOCK_SHEET_MIPPED).transparency(TRANSLUCENT_TRANSPARENCY).target(field_239236_S_).build(true);
+
+        return new ShaderWrappedRenderType(shader, makeType("bubbles:block_bubble", DefaultVertexFormats.BLOCK, 7, 262144, true, true, state));
+    }
+
     private final RenderType delegate;
     private final Shader shader;
 
-    @Nullable
-    private final ShaderCallback cb;
-
-    public ShaderWrappedRenderLayer(Shader shader, @Nullable ShaderCallback cb, RenderType delegate) {
+    public ShaderWrappedRenderType(Shader shader, RenderType delegate) {
         super(Bubbles.MODID + delegate.toString() + "_with_" + shader.name(), delegate.getVertexFormat(), delegate.getDrawMode(), delegate.getBufferSize(), delegate.isUseDelegate(), true,
               () -> {
                   delegate.setupRenderState();
-                  ShaderHelper.useShader(shader, cb);
+                  ShaderHelper.useShader(shader);
               },
               () -> {
                   ShaderHelper.releaseShader();
@@ -35,7 +41,6 @@ public class ShaderWrappedRenderLayer extends RenderType {
               });
         this.delegate = delegate;
         this.shader = shader;
-        this.cb = cb;
     }
 
     @Override
@@ -45,14 +50,13 @@ public class ShaderWrappedRenderLayer extends RenderType {
 
     @Override
     public boolean equals(@Nullable Object other) {
-        return other instanceof ShaderWrappedRenderLayer
-                && delegate.equals(((ShaderWrappedRenderLayer) other).delegate)
-                && shader == ((ShaderWrappedRenderLayer) other).shader
-                && Objects.equals(cb, ((ShaderWrappedRenderLayer) other).cb);
+        return other instanceof ShaderWrappedRenderType
+                && delegate.equals(((ShaderWrappedRenderType) other).delegate)
+                && shader == ((ShaderWrappedRenderType) other).shader;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(delegate, shader, cb);
+        return Objects.hash(delegate, shader);
     }
 }

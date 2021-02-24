@@ -47,6 +47,10 @@ public class ShaderHelper {
         }
     }
 
+    public static void useShader(Shader shader) {
+        useShader(shader, null);
+    }
+
     public static void useShader(Shader shader, @Nullable ShaderCallback cb) {
         ShaderProgram prog = PROGRAMS.get(shader);
         if (prog == null) {
