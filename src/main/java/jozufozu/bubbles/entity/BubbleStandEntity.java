@@ -22,6 +22,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.network.NetworkHooks;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 public class BubbleStandEntity extends Entity {
     @SuppressWarnings("unchecked")
@@ -131,36 +132,21 @@ public class BubbleStandEntity extends Entity {
 
     protected void adjustLength(PlayerEntity altering) {
         Direction orientation = this.getOrientation();
-        int xOffset = Math.abs(orientation.getXOffset());
-        int yOffset = Math.abs(orientation.getYOffset());
-        int zOffset = Math.abs(orientation.getZOffset());
+        int xMul = 1 - Math.abs(orientation.getXOffset());
+        int yMul = 1 - Math.abs(orientation.getYOffset());
+        int zMul = 1 - Math.abs(orientation.getZOffset());
 
-        // the normals for the 2 planes that contain the orientation vector
-        Vector3d plane1 = new Vector3d(zOffset, xOffset, yOffset);
-        Vector3d plane2 = new Vector3d(yOffset, zOffset, xOffset);
+        Vector3d eyePos = altering.getEyePosition(1f);
+        Vector3d thisPos = this.getPositionVec();
+
+        Vector3d planeNormal = eyePos.subtract(thisPos)
+                                     .mul(xMul, yMul, zMul)
+                                     .normalize();
 
         Vector3d look = altering.getLookVec();
-        Vector3d eyePosition = altering.getEyePosition(1f);
 
-        Vector3d inter1 = rayPlaneIntersection(eyePosition, look, this.getPositionVec(), plane1);
-        Vector3d inter2 = rayPlaneIntersection(eyePosition, look, this.getPositionVec(), plane2);
-
-        if (inter1 != null && inter2 != null) {
-            double len1 = inter1.subtract(eyePosition).lengthSquared();
-            double len2 = inter2.subtract(eyePosition).lengthSquared();
-
-            if (len1 > len2) {
-                this.setLengthFromPlaneIntersection(inter1);
-            } else {
-                this.setLengthFromPlaneIntersection(inter2);
-            }
-        } else if (inter1 != null) {
-            this.setLengthFromPlaneIntersection(inter1);
-        } else if (inter2 != null) {
-            this.setLengthFromPlaneIntersection(inter2);
-        } else {
-            this.setLength(3.5f);
-        }
+        rayPlaneIntersection(eyePos, look, thisPos, planeNormal)
+                .ifPresent(this::setLengthFromPlaneIntersection);
     }
 
     private void setLengthFromPlaneIntersection(Vector3d intersection) {
@@ -188,18 +174,25 @@ public class BubbleStandEntity extends Entity {
         this.setLength((float) length);
     }
 
-    @Nullable
-    public static Vector3d rayPlaneIntersection(Vector3d rayPos, Vector3d rayDir, Vector3d planePos, Vector3d planeNorm) {
+    /**
+     * Calculates the position of intersection for a ray and a plane.
+     * @param rayPos The origin of the ray.
+     * @param rayDir The direction of the ray.
+     * @param planePos A point contained within the plane.
+     * @param planeNorm The normal of the plane.
+     * @return The position where the given ray intersects the given plane, if any.
+     */
+    public static Optional<Vector3d> rayPlaneIntersection(Vector3d rayPos, Vector3d rayDir, Vector3d planePos, Vector3d planeNorm) {
         double denom = rayDir.dotProduct(planeNorm);
 
         if (Math.abs(denom) > 1e-6) {
             Vector3d diff = planePos.subtract(rayPos);
             double t = diff.dotProduct(planeNorm) / denom;
 
-            return rayPos.add(rayDir.x * t, rayDir.y * t, rayDir.z * t);
+            return Optional.of(rayPos.add(rayDir.x * t, rayDir.y * t, rayDir.z * t));
         }
 
-        return null;
+        return Optional.empty();
     }
 
     @Override
