@@ -11,9 +11,6 @@ import net.minecraft.util.math.vector.Quaternion;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.math.vector.Vector3f;
 
-import java.util.Arrays;
-import java.util.Collections;
-
 public abstract class UpdraftParticle extends SpriteTexturedParticle {
     protected final IAnimatedSprite spriteWithAge;
 

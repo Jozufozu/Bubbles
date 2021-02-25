@@ -2,14 +2,13 @@ package jozufozu.bubbles.client.renderers;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.vertex.IVertexBuilder;
-import net.minecraft.client.renderer.*;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.util.ResourceLocation;
 import jozufozu.bubbles.client.EntityRendererWithBubbleParts;
 import jozufozu.bubbles.client.FancyRenderedModel;
 import jozufozu.bubbles.entity.BubbleEntity;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.entity.EntityRendererManager;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.util.ResourceLocation;
 
 public class BubbleRenderer extends EntityRendererWithBubbleParts<BubbleEntity> {
     private static final ResourceLocation TEXTURE = new ResourceLocation("bubbles:textures/entity/bubble.png");

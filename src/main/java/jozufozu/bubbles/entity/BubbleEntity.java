@@ -1,5 +1,6 @@
 package jozufozu.bubbles.entity;
 
+import jozufozu.bubbles.block.ISafeBlock;
 import jozufozu.bubbles.entity.behavior.Behaviors;
 import jozufozu.bubbles.util.Collider;
 import jozufozu.bubbles.util.CollisionUtil;
@@ -22,10 +23,11 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.fml.network.NetworkHooks;
-import jozufozu.bubbles.block.ISafeBlock;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
 
 public class BubbleEntity extends Entity {
     @SuppressWarnings("unchecked")

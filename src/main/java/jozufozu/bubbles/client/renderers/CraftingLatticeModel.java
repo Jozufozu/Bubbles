@@ -8,7 +8,6 @@ import com.mojang.blaze3d.vertex.IVertexBuilder;
 import jozufozu.bubbles.entity.BubbleStandEntity;
 import net.minecraft.client.renderer.entity.model.EntityModel;
 import net.minecraft.client.renderer.model.ModelRenderer;
-import net.minecraft.entity.Entity;
 
 public class CraftingLatticeModel extends EntityModel<BubbleStandEntity> {
 	private final ModelRenderer bb_main;

@@ -2,7 +2,10 @@ package jozufozu.bubbles.block;
 
 import jozufozu.bubbles.entity.BubbleEntity;
 import jozufozu.bubbles.util.ShapeUtil;
-import net.minecraft.block.*;
+import net.minecraft.block.AbstractBlock;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.material.PushReaction;
 import net.minecraft.entity.Entity;

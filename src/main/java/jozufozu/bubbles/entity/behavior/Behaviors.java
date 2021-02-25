@@ -7,7 +7,6 @@ import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.item.TNTEntity;
 
 import java.util.HashMap;
-import java.util.function.BiConsumer;
 
 public class Behaviors {
 

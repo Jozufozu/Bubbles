@@ -1,7 +1,5 @@
 package jozufozu.bubbles.util;
 
-import java.util.*;
-
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
@@ -17,6 +15,7 @@ import net.minecraft.world.IBlockReader;
 import net.minecraft.world.ICollisionReader;
 
 import javax.annotation.Nullable;
+import java.util.Iterator;
 
 public class ColliderIterator implements Iterator<Collider.BlockCollider> {
     private final AxisAlignedBB aabb;

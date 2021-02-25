@@ -1,6 +1,8 @@
 package jozufozu.bubbles.client.shader;
 
 import com.mojang.blaze3d.platform.GlStateManager;
+import jozufozu.bubbles.Bubbles;
+import jozufozu.bubbles.client.ClientTickHandler;
 import net.minecraft.client.MainWindow;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.shader.IShaderManager;
@@ -11,8 +13,6 @@ import net.minecraft.resources.IResourceManager;
 import net.minecraft.resources.IResourceManagerReloadListener;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.system.MemoryUtil;
-import jozufozu.bubbles.Bubbles;
-import jozufozu.bubbles.client.ClientTickHandler;
 
 import javax.annotation.Nullable;
 import java.io.BufferedInputStream;

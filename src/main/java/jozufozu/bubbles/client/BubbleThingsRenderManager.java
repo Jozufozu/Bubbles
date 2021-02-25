@@ -1,11 +1,10 @@
 package jozufozu.bubbles.client;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
-import jozufozu.bubbles.client.shader.ShaderWrappedRenderType;
+import jozufozu.bubbles.Bubbles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.culling.ClippingHelper;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -24,7 +23,6 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import jozufozu.bubbles.Bubbles;
 
 @Mod.EventBusSubscriber(modid = Bubbles.MODID)
 @OnlyIn(Dist.CLIENT)

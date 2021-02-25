@@ -5,9 +5,9 @@ package jozufozu.bubbles.client.renderers;// Made with Blockbench 3.7.4
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.vertex.IVertexBuilder;
+import jozufozu.bubbles.entity.BubbleStandEntity;
 import net.minecraft.client.renderer.entity.model.EntityModel;
 import net.minecraft.client.renderer.model.ModelRenderer;
-import jozufozu.bubbles.entity.BubbleStandEntity;
 
 public class BubbleRingModel extends EntityModel<BubbleStandEntity> {
 	private final ModelRenderer bubble_ring;

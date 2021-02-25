@@ -5,15 +5,16 @@ import jozufozu.bubbles.client.particles.ModParticles;
 import jozufozu.bubbles.client.renderers.BubbleRenderer;
 import jozufozu.bubbles.client.renderers.BubbleStandRenderer;
 import jozufozu.bubbles.client.shader.ShaderHelper;
-import jozufozu.bubbles.client.shader.ShaderWrappedRenderType;
-import jozufozu.bubbles.entity.behavior.Behaviors;
+import jozufozu.bubbles.entity.BubbleEntity;
 import jozufozu.bubbles.entity.BubbleStandEntity;
 import jozufozu.bubbles.entity.Serializers;
+import jozufozu.bubbles.entity.behavior.Behaviors;
+import jozufozu.bubbles.items.BubbleStandItem;
+import jozufozu.bubbles.items.BubbleWandItem;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.RenderTypeLookup;
 import net.minecraft.entity.EntityType;
 import net.minecraft.item.Item;
-import net.minecraft.tags.Tag;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraftforge.api.distmarker.Dist;
@@ -31,9 +32,6 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import jozufozu.bubbles.entity.BubbleEntity;
-import jozufozu.bubbles.items.BubbleStandItem;
-import jozufozu.bubbles.items.BubbleWandItem;
 
 @Mod(Bubbles.MODID)
 public class Bubbles {

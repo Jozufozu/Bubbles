@@ -8,12 +8,11 @@
  */
 package jozufozu.bubbles.client.shader;
 
-import net.minecraft.client.renderer.RenderType;
 import jozufozu.bubbles.Bubbles;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 
 import javax.annotation.Nullable;
-
 import java.util.Objects;
 import java.util.Optional;
 

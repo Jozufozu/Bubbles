@@ -1,9 +1,9 @@
 package jozufozu.bubbles.entity;
 
 import jozufozu.bubbles.Bubbles;
+import jozufozu.bubbles.entity.behavior.StandAttachment;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.datasync.IDataSerializer;
-import jozufozu.bubbles.entity.behavior.StandAttachment;
 import net.minecraftforge.registries.DataSerializerEntry;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;

@@ -2,6 +2,8 @@ package jozufozu.bubbles.client.renderers;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.vertex.IVertexBuilder;
+import jozufozu.bubbles.client.EntityRendererWithBubbleParts;
+import jozufozu.bubbles.client.FancyRenderedModel;
 import jozufozu.bubbles.entity.BubbleStandEntity;
 import jozufozu.bubbles.entity.behavior.StandAttachment;
 import net.minecraft.client.renderer.IRenderTypeBuffer;
@@ -12,8 +14,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.vector.Quaternion;
 import net.minecraft.util.math.vector.Vector3f;
-import jozufozu.bubbles.client.EntityRendererWithBubbleParts;
-import jozufozu.bubbles.client.FancyRenderedModel;
 
 public class BubbleStandRenderer extends EntityRendererWithBubbleParts<BubbleStandEntity> {
     public static final ResourceLocation STAND_BASE = new ResourceLocation("bubbles:textures/entity/bubble_stand.png");

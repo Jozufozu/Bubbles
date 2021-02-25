@@ -1,10 +1,11 @@
 package jozufozu.bubbles.block;
 
-import java.util.Random;
-
 import jozufozu.bubbles.client.particles.ModParticles;
 import jozufozu.bubbles.entity.BubbleEntity;
-import net.minecraft.block.*;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockRenderType;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.material.MaterialColor;
 import net.minecraft.block.material.PushReaction;
@@ -24,6 +25,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+
+import java.util.Random;
 
 public class UpdraftBlock extends Block {
     public static final Material MATERIAL = new Material(MaterialColor.AIR, false, false, false, false, false, true, PushReaction.DESTROY);
