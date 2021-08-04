@@ -28,7 +28,7 @@ public class WandStandEntity extends AbstractStandEntity {
 
     @Override
     public void blowFrom(BlockPos pos, double dx, double dz, BubbleEntity.PushForce force) {
-        Vector3d lookVec = this.getLookVec();
+        Vector3d lookVec = this.getLookAngle();
 
         double lookX = lookVec.x;
         double lookZ = lookVec.z;
@@ -37,9 +37,9 @@ public class WandStandEntity extends AbstractStandEntity {
             double radius = 0.25;
 
             Vector3d spawnPos = this.getAttachmentPosition();
-            BubbleEntity entity = new BubbleEntity(world, spawnPos.x + dx * radius, spawnPos.y - radius, spawnPos.z + dz * radius, force);
+            BubbleEntity entity = new BubbleEntity(level, spawnPos.x + dx * radius, spawnPos.y - radius, spawnPos.z + dz * radius, force);
 
-            world.addEntity(entity);
+            level.addFreshEntity(entity);
         }
     }
 }

@@ -23,8 +23,8 @@ import java.util.Optional;
 
 public abstract class AbstractStandEntity extends Entity {
 
-    private static final DataParameter<Direction> ORIENTATION = EntityDataManager.createKey(AbstractStandEntity.class, DataSerializers.DIRECTION);
-    private static final DataParameter<Float> LENGTH = EntityDataManager.createKey(AbstractStandEntity.class, DataSerializers.FLOAT);
+    private static final DataParameter<Direction> ORIENTATION = EntityDataManager.defineId(AbstractStandEntity.class, DataSerializers.DIRECTION);
+    private static final DataParameter<Float> LENGTH = EntityDataManager.defineId(AbstractStandEntity.class, DataSerializers.FLOAT);
     public static final float DEFAULT_LENGTH = 0.5f;
 
     @Nullable
@@ -35,34 +35,34 @@ public abstract class AbstractStandEntity extends Entity {
     public AbstractStandEntity(EntityType<?> entityTypeIn, World worldIn) {
         super(entityTypeIn, worldIn);
 
-        this.recalculateSize();
+        this.refreshDimensions();
     }
 
     @Override
-    protected void registerData() {
-        this.dataManager.register(ORIENTATION, Direction.UP);
-        this.dataManager.register(LENGTH, DEFAULT_LENGTH);
+    protected void defineSynchedData() {
+        this.entityData.define(ORIENTATION, Direction.UP);
+        this.entityData.define(LENGTH, DEFAULT_LENGTH);
     }
 
     public Direction getOrientation() {
-        return this.dataManager.get(ORIENTATION);
+        return this.entityData.get(ORIENTATION);
     }
 
     public void setOrientation(Direction orientation) {
-        this.dataManager.set(ORIENTATION, orientation);
+        this.entityData.set(ORIENTATION, orientation);
     }
 
     public float getLength() {
-        return this.dataManager.get(LENGTH);
+        return this.entityData.get(LENGTH);
     }
 
     public void setLength(float length) {
-        this.dataManager.set(LENGTH, length);
+        this.entityData.set(LENGTH, length);
     }
 
     @Override
-    public ActionResultType processInitialInteract(PlayerEntity player, Hand hand) {
-        if (player.isSneaking() && this.altering == null) {
+    public ActionResultType interact(PlayerEntity player, Hand hand) {
+        if (player.isShiftKeyDown() && this.altering == null) {
             this.altering = player;
 
             return ActionResultType.SUCCESS;
@@ -84,7 +84,7 @@ public abstract class AbstractStandEntity extends Entity {
         this.lastTickLength = this.getLength();
 
         if (altering != null) {
-            if (altering.isSneaking())
+            if (altering.isShiftKeyDown())
                 adjustLength(altering);
             else
                 altering = null;
@@ -92,25 +92,25 @@ public abstract class AbstractStandEntity extends Entity {
             setLength(2.5f);
         }
 
-        if (!world.isRemote && world.isAirBlock(this.getPosition().offset(this.getOrientation().getOpposite()))) {
+        if (!level.isClientSide && level.isEmptyBlock(this.blockPosition().relative(this.getOrientation().getOpposite()))) {
             this.remove();
         }
     }
 
     protected void adjustLength(PlayerEntity altering) {
         Direction orientation = this.getOrientation();
-        int xMul = 1 - Math.abs(orientation.getXOffset());
-        int yMul = 1 - Math.abs(orientation.getYOffset());
-        int zMul = 1 - Math.abs(orientation.getZOffset());
+        int xMul = 1 - Math.abs(orientation.getStepX());
+        int yMul = 1 - Math.abs(orientation.getStepY());
+        int zMul = 1 - Math.abs(orientation.getStepZ());
 
         Vector3d eyePos = altering.getEyePosition(1f);
-        Vector3d thisPos = this.getPositionVec();
+        Vector3d thisPos = this.position();
 
         Vector3d planeNormal = eyePos.subtract(thisPos)
-                                     .mul(xMul, yMul, zMul)
+                                     .multiply(xMul, yMul, zMul)
                                      .normalize();
 
-        Vector3d look = altering.getLookVec();
+        Vector3d look = altering.getLookAngle();
 
         rayPlaneIntersection(eyePos, look, thisPos, planeNormal)
                 .ifPresent(this::setLengthFromPlaneIntersection);
@@ -119,11 +119,11 @@ public abstract class AbstractStandEntity extends Entity {
     private void setLengthFromPlaneIntersection(Vector3d intersection) {
         Direction orientation = this.getOrientation();
 
-        int xOffset = orientation.getXOffset();
-        int yOffset = orientation.getYOffset();
-        int zOffset = orientation.getZOffset();
+        int xOffset = orientation.getStepX();
+        int yOffset = orientation.getStepY();
+        int zOffset = orientation.getStepZ();
 
-        Vector3d to = intersection.subtract(this.getPositionVec());
+        Vector3d to = intersection.subtract(this.position());
 
         double length = to.x * xOffset + to.y * yOffset + to.z * zOffset;
 
@@ -150,11 +150,11 @@ public abstract class AbstractStandEntity extends Entity {
      * @return The position where the given ray intersects the given plane, if any.
      */
     public static Optional<Vector3d> rayPlaneIntersection(Vector3d rayPos, Vector3d rayDir, Vector3d planePos, Vector3d planeNorm) {
-        double denom = rayDir.dotProduct(planeNorm);
+        double denom = rayDir.dot(planeNorm);
 
         if (Math.abs(denom) > 1e-6) {
             Vector3d diff = planePos.subtract(rayPos);
-            double t = diff.dotProduct(planeNorm) / denom;
+            double t = diff.dot(planeNorm) / denom;
 
             return Optional.of(rayPos.add(rayDir.x * t, rayDir.y * t, rayDir.z * t));
         }
@@ -163,11 +163,11 @@ public abstract class AbstractStandEntity extends Entity {
     }
 
     @Override
-    public void recalculateSize() {
-        if (this.dataManager == null) return; // this gets called once before data is registered
+    public void refreshDimensions() {
+        if (this.entityData == null) return; // this gets called once before data is registered
 
         Direction orientation = this.getOrientation();
-        Vector3d pos = this.getPositionVec();
+        Vector3d pos = this.position();
 
         this.setBoundingBox(calculateBoundingBox(orientation, pos, this.getLength()));
     }
@@ -187,13 +187,13 @@ public abstract class AbstractStandEntity extends Entity {
 
     public Vector3d getAttachmentPosition() {
         Direction orientation = this.getOrientation();
-        int x = orientation.getXOffset();
-        int y = orientation.getYOffset();
-        int z = orientation.getZOffset();
+        int x = orientation.getStepX();
+        int y = orientation.getStepY();
+        int z = orientation.getStepZ();
 
         double length = this.getLength();
 
-        return this.getPositionVec().add(x * length, y * length, z * length);
+        return this.position().add(x * length, y * length, z * length);
     }
 
     public static AxisAlignedBB calculateBoundingBox(Direction orientation, Vector3d pos) {
@@ -201,9 +201,9 @@ public abstract class AbstractStandEntity extends Entity {
     }
 
     public static AxisAlignedBB calculateBoundingBox(Direction orientation, Vector3d pos, float length) {
-        int xOffset = orientation.getXOffset();
-        int yOffset = orientation.getYOffset();
-        int zOffset = orientation.getZOffset();
+        int xOffset = orientation.getStepX();
+        int yOffset = orientation.getStepY();
+        int zOffset = orientation.getStepZ();
 
         int xGrow = 1 - Math.abs(xOffset);
         int yGrow = 1 - Math.abs(yOffset);
@@ -221,14 +221,14 @@ public abstract class AbstractStandEntity extends Entity {
     }
 
     @Override
-    public void setPosition(double x, double y, double z) {
-        this.setRawPosition(x, y, z);
-        this.recalculateSize();
+    public void setPos(double x, double y, double z) {
+        this.setPosRaw(x, y, z);
+        this.refreshDimensions();
     }
 
-    public void notifyDataManagerChange(DataParameter<?> key) {
+    public void onSyncedDataUpdated(DataParameter<?> key) {
         if (ORIENTATION.equals(key) || LENGTH.equals(key)) {
-            this.recalculateSize();
+            this.refreshDimensions();
         }
     }
 
@@ -238,7 +238,7 @@ public abstract class AbstractStandEntity extends Entity {
     }
 
     @Override
-    protected AxisAlignedBB getBoundingBox(Pose pose) {
+    protected AxisAlignedBB getBoundingBoxForPose(Pose pose) {
         return this.getBoundingBox();
     }
 
@@ -247,18 +247,18 @@ public abstract class AbstractStandEntity extends Entity {
     }
 
     @Override
-    public boolean attackEntityFrom(DamageSource source, float amount) {
+    public boolean hurt(DamageSource source, float amount) {
         this.remove();
         return true;
     }
 
     @Override
-    public boolean canBeCollidedWith() {
+    public boolean isPickable() {
         return true;
     }
 
     @Override
-    protected void readAdditional(CompoundNBT compound) {
+    protected void readAdditionalSaveData(CompoundNBT compound) {
         Direction orientation = Direction.byName(compound.getString("orientation"));
         if (orientation != null) this.setOrientation(orientation);
 
@@ -266,13 +266,13 @@ public abstract class AbstractStandEntity extends Entity {
     }
 
     @Override
-    protected void writeAdditional(CompoundNBT compound) {
-        compound.putString("orientation", this.getOrientation().getName2());
+    protected void addAdditionalSaveData(CompoundNBT compound) {
+        compound.putString("orientation", this.getOrientation().getName());
         compound.putFloat("length", this.getLength());
     }
 
     @Override
-    public IPacket<?> createSpawnPacket() {
+    public IPacket<?> getAddEntityPacket() {
         return NetworkHooks.getEntitySpawningPacket(this);
     }
 }

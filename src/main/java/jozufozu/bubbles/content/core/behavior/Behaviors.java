@@ -17,8 +17,8 @@ public class Behaviors {
     public static void initBehaviors() {
 
         // You can't pick up items in bubbles
-        addBehavior(MOUNT_BEHAVIORS, ItemEntity.class, (bubbleEntity, entity) -> entity.setInfinitePickupDelay());
-        addBehavior(DISMOUNT_BEHAVIORS, ItemEntity.class, (bubbleEntity, entity) -> entity.setDefaultPickupDelay());
+        addBehavior(MOUNT_BEHAVIORS, ItemEntity.class, (bubbleEntity, entity) -> entity.setNeverPickUp());
+        addBehavior(DISMOUNT_BEHAVIORS, ItemEntity.class, (bubbleEntity, entity) -> entity.setDefaultPickUpDelay());
 
         // Area effect clouds don't shrink
         addBehavior(TICK_BEHAVIORS, AreaEffectCloudEntity.class, (bubbleEntity, entity) -> {
@@ -27,7 +27,7 @@ public class Behaviors {
         });
 
         addBehavior(TICK_BEHAVIORS, TNTEntity.class, (bubbleEntity, entity) -> {
-            if (entity.getFuse() == 1) {
+            if (entity.getLife() == 1) {
 
             }
         });

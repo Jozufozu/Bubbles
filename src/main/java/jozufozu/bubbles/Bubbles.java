@@ -51,7 +51,7 @@ public class Bubbles {
         RenderingRegistry.registerEntityRenderingHandler(AllEntityTypes.BUBBLE_STAND, WandStandRenderer::new);
         RenderingRegistry.registerEntityRenderingHandler(AllEntityTypes.CRAFTING_STAND, CraftingStandRenderer::new);
 
-        RenderTypeLookup.setRenderLayer(AllBlocks.BLAZING_SOUL_FIRE.get(), RenderType.getCutout());
+        RenderTypeLookup.setRenderLayer(AllBlocks.BLAZING_SOUL_FIRE.get(), RenderType.cutout());
     }
 
     private void enqueueIMC(final InterModEnqueueEvent event) { }

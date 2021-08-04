@@ -20,16 +20,16 @@ public class ShaderWrappedRenderType extends RenderType {
     public static final ShaderWrappedRenderType BUBBLE = makeBlockLayer(Shader.BUBBLE);
 
     private static ShaderWrappedRenderType makeBlockLayer(Shader shader) {
-        RenderType.State state = RenderType.State.getBuilder().shadeModel(SHADE_ENABLED).lightmap(LIGHTMAP_ENABLED).texture(BLOCK_SHEET_MIPPED).transparency(TRANSLUCENT_TRANSPARENCY).target(field_239236_S_).build(true);
+        RenderType.State state = RenderType.State.builder().setShadeModelState(SMOOTH_SHADE).setLightmapState(LIGHTMAP).setTextureState(BLOCK_SHEET_MIPPED).setTransparencyState(TRANSLUCENT_TRANSPARENCY).setOutputState(TRANSLUCENT_TARGET).createCompositeState(true);
 
-        return new ShaderWrappedRenderType(shader, makeType("bubbles:block_bubble", DefaultVertexFormats.BLOCK, 7, 262144, true, true, state));
+        return new ShaderWrappedRenderType(shader, create("bubbles:block_bubble", DefaultVertexFormats.BLOCK, 7, 262144, true, true, state));
     }
 
     private final RenderType delegate;
     private final Shader shader;
 
     public ShaderWrappedRenderType(Shader shader, RenderType delegate) {
-        super(Bubbles.MODID + delegate.toString() + "_with_" + shader.name(), delegate.getVertexFormat(), delegate.getDrawMode(), delegate.getBufferSize(), delegate.isUseDelegate(), true,
+        super(Bubbles.MODID + delegate.toString() + "_with_" + shader.name(), delegate.format(), delegate.mode(), delegate.bufferSize(), delegate.affectsCrumbling(), true,
               () -> {
                   delegate.setupRenderState();
                   ShaderHelper.useShader(shader);
@@ -43,8 +43,8 @@ public class ShaderWrappedRenderType extends RenderType {
     }
 
     @Override
-    public Optional<RenderType> getOutline() {
-        return delegate.getOutline();
+    public Optional<RenderType> outline() {
+        return delegate.outline();
     }
 
     @Override

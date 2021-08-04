@@ -29,7 +29,7 @@ public class AllParticles {
     @OnlyIn(Dist.CLIENT)
     @SubscribeEvent
     public static void registerFactories(ParticleFactoryRegisterEvent evt) {
-        Minecraft.getInstance().particles.registerFactory(UPDRAFT_SMALL, SmallUpdraftParticle.Factory::new);
-        Minecraft.getInstance().particles.registerFactory(UPDRAFT_SWIRL, UpdraftSwirlParticle.Factory::new);
+        Minecraft.getInstance().particleEngine.register(UPDRAFT_SMALL, SmallUpdraftParticle.Factory::new);
+        Minecraft.getInstance().particleEngine.register(UPDRAFT_SWIRL, UpdraftSwirlParticle.Factory::new);
     }
 }

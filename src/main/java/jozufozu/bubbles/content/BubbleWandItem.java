@@ -13,21 +13,21 @@ import net.minecraft.world.World;
 
 public class BubbleWandItem extends Item {
     public BubbleWandItem() {
-        super(new Item.Properties().group(ItemGroup.MISC));
+        super(new Item.Properties().tab(ItemGroup.TAB_MISC));
     }
 
     @Override
-    public void onUse(World worldIn, LivingEntity livingEntityIn, ItemStack stack, int count) {
-        super.onUse(worldIn, livingEntityIn, stack, count);
+    public void onUseTick(World worldIn, LivingEntity livingEntityIn, ItemStack stack, int count) {
+        super.onUseTick(worldIn, livingEntityIn, stack, count);
     }
 
     @Override
-    public ActionResultType onItemUse(ItemUseContext context) {
-        return super.onItemUse(context);
+    public ActionResultType useOn(ItemUseContext context) {
+        return super.useOn(context);
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(World worldIn, PlayerEntity playerIn, Hand handIn) {
-        return super.onItemRightClick(worldIn, playerIn, handIn);
+    public ActionResult<ItemStack> use(World worldIn, PlayerEntity playerIn, Hand handIn) {
+        return super.use(worldIn, playerIn, handIn);
     }
 }

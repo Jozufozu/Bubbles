@@ -29,48 +29,50 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.Random;
 
+import net.minecraft.block.AbstractBlock.Properties;
+
 public class UpdraftBlock extends Block {
-    public static final Material MATERIAL = new Material(MaterialColor.AIR, false, false, false, false, false, true, PushReaction.DESTROY);
+    public static final Material MATERIAL = new Material(MaterialColor.NONE, false, false, false, false, false, true, PushReaction.DESTROY);
 
     public UpdraftBlock() {
-        super(Properties.create(MATERIAL).doesNotBlockMovement().noDrops());
+        super(Properties.of(MATERIAL).noCollission().noDrops());
     }
 
-    public void onEntityCollision(BlockState state, World worldIn, BlockPos pos, Entity entityIn) {
+    public void entityInside(BlockState state, World worldIn, BlockPos pos, Entity entityIn) {
         if (entityIn instanceof BubbleEntity || entityIn instanceof ItemEntity) {
-            Vector3d vector3d = entityIn.getMotion();
+            Vector3d vector3d = entityIn.getDeltaMovement();
             double d0 = Math.min(0.3D, vector3d.y + 0.04D);
 
-            entityIn.setMotion(vector3d.x, d0, vector3d.z);
+            entityIn.setDeltaMovement(vector3d.x, d0, vector3d.z);
             entityIn.fallDistance = 0.0F;
-        } else if (entityIn instanceof LivingEntity && ((LivingEntity) entityIn).isElytraFlying()) {
-            Vector3d vector3d = entityIn.getMotion();
+        } else if (entityIn instanceof LivingEntity && ((LivingEntity) entityIn).isFallFlying()) {
+            Vector3d vector3d = entityIn.getDeltaMovement();
             double d0 = Math.min(0.5D, vector3d.y + 0.08D);
 
-            entityIn.setMotion(vector3d.x, d0, vector3d.z);
+            entityIn.setDeltaMovement(vector3d.x, d0, vector3d.z);
         }
     }
 
-    public void onBlockAdded(BlockState state, World worldIn, BlockPos pos, BlockState oldState, boolean isMoving) {
-        worldIn.getPendingBlockTicks().scheduleTick(pos, this, 1);
+    public void onPlace(BlockState state, World worldIn, BlockPos pos, BlockState oldState, boolean isMoving) {
+        worldIn.getBlockTicks().scheduleTick(pos, this, 1);
     }
 
     public void tick(BlockState state, ServerWorld worldIn, BlockPos pos, Random rand) {
-        placeUpdraft(worldIn, pos.up());
+        placeUpdraft(worldIn, pos.above());
 
-        if (!state.isValidPosition(worldIn, pos)) {
-            worldIn.setBlockState(pos, Blocks.AIR.getDefaultState());
+        if (!state.canSurvive(worldIn, pos)) {
+            worldIn.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
         }
     }
 
     public static void placeUpdraft(IWorld world, BlockPos pos) {
         if (canHoldUpdraft(world, pos)) {
-            world.setBlockState(pos, AllBlocks.UPDRAFT.get().getDefaultState(), 2);
+            world.setBlock(pos, AllBlocks.UPDRAFT.get().defaultBlockState(), 2);
         }
     }
 
     public static boolean canHoldUpdraft(IWorld world, BlockPos pos) {
-        return world.isAirBlock(pos);
+        return world.isEmptyBlock(pos);
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -93,26 +95,26 @@ public class UpdraftBlock extends Block {
      * returns its solidified counterpart.
      * Note that this method should ideally consider only the specific face passed in.
      */
-    public BlockState updatePostPlacement(BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) {
-        if (!stateIn.isValidPosition(worldIn, currentPos)) {
-            worldIn.getPendingBlockTicks().scheduleTick(currentPos, this, 1);
-        } else if (facing == Direction.UP && !facingState.isIn(AllBlocks.UPDRAFT.get()) && canHoldUpdraft(worldIn, facingPos)) {
-            worldIn.getPendingBlockTicks().scheduleTick(currentPos, this, 5);
+    public BlockState updateShape(BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) {
+        if (!stateIn.canSurvive(worldIn, currentPos)) {
+            worldIn.getBlockTicks().scheduleTick(currentPos, this, 1);
+        } else if (facing == Direction.UP && !facingState.is(AllBlocks.UPDRAFT.get()) && canHoldUpdraft(worldIn, facingPos)) {
+            worldIn.getBlockTicks().scheduleTick(currentPos, this, 5);
         }
 
         return stateIn;
     }
 
-    public boolean isValidPosition(BlockState state, IWorldReader worldIn, BlockPos pos) {
-        BlockState blockstate = worldIn.getBlockState(pos.down());
-        return blockstate.isIn(AllBlocks.UPDRAFT.get()) || blockstate.isIn(AllBlocks.BLAZING_SOUL_FIRE.get());
+    public boolean canSurvive(BlockState state, IWorldReader worldIn, BlockPos pos) {
+        BlockState blockstate = worldIn.getBlockState(pos.below());
+        return blockstate.is(AllBlocks.UPDRAFT.get()) || blockstate.is(AllBlocks.BLAZING_SOUL_FIRE.get());
     }
 
     public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
         return VoxelShapes.empty();
     }
 
-    public BlockRenderType getRenderType(BlockState state) {
+    public BlockRenderType getRenderShape(BlockState state) {
         return BlockRenderType.INVISIBLE;
     }
 }

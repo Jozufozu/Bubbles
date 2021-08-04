@@ -2,11 +2,14 @@ package jozufozu.bubbles.content.stands.model;
 
 import jozufozu.bubbles.render.FancyRenderedModel;
 
+import jozufozu.bubbles.render.FancyRenderedModel.PositionNormalVertex;
+import jozufozu.bubbles.render.FancyRenderedModel.TexturedQuad;
+
 public class FilmModel extends FancyRenderedModel {
 
     public FilmModel() {
-        this.textureHeight = 16;
-        this.textureWidth = 16;
+        this.texHeight = 16;
+        this.texWidth = 16;
 
         this.quads = new TexturedQuad[1];
 

@@ -29,16 +29,16 @@ public abstract class FancyRenderedModel extends Model {
     protected static final RenderState.AlphaState DEFAULT_ALPHA = new RenderState.AlphaState(0.003921569F);
 
     private static RenderType makeRenderType(ResourceLocation texture) {
-        RenderType.State state = RenderType.State.getBuilder()
-                                                 .texture(new RenderState.TextureState(texture, false, false))
-                                                 .transparency(TRANSLUCENT_TRANSPARENCY)
-                                                 .diffuseLighting(new RenderState.DiffuseLightingState(true))
-                                                 .alpha(DEFAULT_ALPHA)
-                                                 .cull(new RenderState.CullState(false))
-                                                 .lightmap(new RenderState.LightmapState(true))
-                                                 .overlay(new RenderState.OverlayState(false))
-                                                 .build(true);
-        RenderType normal = RenderType.makeType("bubbles:bubble", DefaultVertexFormats.ENTITY, 7, 256, true, true, state);
+        RenderType.State state = RenderType.State.builder()
+                                                 .setTextureState(new RenderState.TextureState(texture, false, false))
+                                                 .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                                                 .setDiffuseLightingState(new RenderState.DiffuseLightingState(true))
+                                                 .setAlphaState(DEFAULT_ALPHA)
+                                                 .setCullState(new RenderState.CullState(false))
+                                                 .setLightmapState(new RenderState.LightmapState(true))
+                                                 .setOverlayState(new RenderState.OverlayState(false))
+                                                 .createCompositeState(true);
+        RenderType normal = RenderType.create("bubbles:bubble", DefaultVertexFormats.NEW_ENTITY, 7, 256, true, true, state);
 
         return new ShaderWrappedRenderType(Shader.BUBBLE, normal);
     }
@@ -50,10 +50,10 @@ public abstract class FancyRenderedModel extends Model {
     }
 
     @Override
-    public void render(MatrixStack matrixStackIn, IVertexBuilder bufferIn, int packedLightIn, int packedOverlayIn, float red, float green, float blue, float alpha) {
-        MatrixStack.Entry last = matrixStackIn.getLast();
-        Matrix4f matrix = last.getMatrix();
-        Matrix3f normalMat = last.getNormal();
+    public void renderToBuffer(MatrixStack matrixStackIn, IVertexBuilder bufferIn, int packedLightIn, int packedOverlayIn, float red, float green, float blue, float alpha) {
+        MatrixStack.Entry last = matrixStackIn.last();
+        Matrix4f matrix = last.pose();
+        Matrix3f normalMat = last.normal();
 
         float[] us = new float[]{1f, 0f, 0f, 1f};
         float[] vs = new float[]{1f, 1f, 0f, 0f};
@@ -64,16 +64,16 @@ public abstract class FancyRenderedModel extends Model {
 
                 Vector3f quadNormal = vertex.normal.copy();
                 quadNormal.transform(normalMat);
-                float nx = quadNormal.getX();
-                float ny = quadNormal.getY();
-                float nz = quadNormal.getZ();
+                float nx = quadNormal.x();
+                float ny = quadNormal.y();
+                float nz = quadNormal.z();
 
-                float x = vertex.position.getX();
-                float y = vertex.position.getY();
-                float z = vertex.position.getZ();
+                float x = vertex.position.x();
+                float y = vertex.position.y();
+                float z = vertex.position.z();
                 Vector4f vector4f = new Vector4f(x, y, z, 1.0F);
                 vector4f.transform(matrix);
-                bufferIn.addVertex(vector4f.getX(), vector4f.getY(), vector4f.getZ(), red, green, blue, alpha, us[i], vs[i], packedOverlayIn, packedLightIn, nx, ny, nz);
+                bufferIn.vertex(vector4f.x(), vector4f.y(), vector4f.z(), red, green, blue, alpha, us[i], vs[i], packedOverlayIn, packedLightIn, nx, ny, nz);
             }
         }
     }

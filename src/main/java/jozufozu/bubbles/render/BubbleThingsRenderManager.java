@@ -31,36 +31,36 @@ public class BubbleThingsRenderManager {
     @SubscribeEvent
     public static void renderBubbles(RenderWorldLastEvent event) {
         IProfiler profiler = Minecraft.getInstance().getProfiler();
-        profiler.startSection("renderBubbleThings");
+        profiler.push("renderBubbleThings");
         MatrixStack matrixStack = event.getMatrixStack();
 
         WorldRenderer worldRenderer = event.getContext();
 
-        ClientWorld world = Minecraft.getInstance().world;
+        ClientWorld world = Minecraft.getInstance().level;
 
-        ActiveRenderInfo info = worldRenderer.renderManager.info;
+        ActiveRenderInfo info = worldRenderer.entityRenderDispatcher.camera;
 
         float partialTicks = event.getPartialTicks();
 
-        Vector3d vector3d = info.getProjectedView();
-        double camX = vector3d.getX();
-        double camY = vector3d.getY();
-        double camZ = vector3d.getZ();
+        Vector3d vector3d = info.getPosition();
+        double camX = vector3d.x();
+        double camY = vector3d.y();
+        double camZ = vector3d.z();
 
-        Matrix4f matrix4f = matrixStack.getLast().getMatrix();
+        Matrix4f matrix4f = matrixStack.last().pose();
 
         ClippingHelper cam = new ClippingHelper(matrix4f, event.getProjectionMatrix());
-        cam.setCameraPosition(camX, camY, camZ);
+        cam.prepare(camX, camY, camZ);
 
-        IRenderTypeBuffer.Impl renderTypeBuffers = worldRenderer.renderTypeTextures.getBufferSource();
+        IRenderTypeBuffer.Impl renderTypeBuffers = worldRenderer.renderBuffers.bufferSource();
 
-        for (Entity entity : world.getAllEntities()) {
-            tryRenderBubblePart(worldRenderer.renderManager, entity, cam, camX, camY, camZ, partialTicks, matrixStack, renderTypeBuffers);
+        for (Entity entity : world.entitiesForRendering()) {
+            tryRenderBubblePart(worldRenderer.entityRenderDispatcher, entity, cam, camX, camY, camZ, partialTicks, matrixStack, renderTypeBuffers);
         }
 
-        renderTypeBuffers.finish();
+        renderTypeBuffers.endBatch();
 
-        profiler.endSection();
+        profiler.pop();
     }
 
     @SuppressWarnings("unchecked")
@@ -73,29 +73,29 @@ public class BubbleThingsRenderManager {
 
             if (!bubbleParts.shouldRenderBubbleParts(entityIn, cam, camX, camY, camZ)) return;
 
-            double x = MathHelper.lerp(partialTicks, entityIn.lastTickPosX, entityIn.getPosX()) - camX;
-            double y = MathHelper.lerp(partialTicks, entityIn.lastTickPosY, entityIn.getPosY()) - camY;
-            double z = MathHelper.lerp(partialTicks, entityIn.lastTickPosZ, entityIn.getPosZ()) - camZ;
-            float yaw = MathHelper.lerp(partialTicks, entityIn.prevRotationYaw, entityIn.rotationYaw);
+            double x = MathHelper.lerp(partialTicks, entityIn.xOld, entityIn.getX()) - camX;
+            double y = MathHelper.lerp(partialTicks, entityIn.yOld, entityIn.getY()) - camY;
+            double z = MathHelper.lerp(partialTicks, entityIn.zOld, entityIn.getZ()) - camZ;
+            float yaw = MathHelper.lerp(partialTicks, entityIn.yRotO, entityIn.yRot);
             try {
                 Vector3d vector3d = renderer.getRenderOffset(entityIn, partialTicks);
-                double d2 = x + vector3d.getX();
-                double d3 = y + vector3d.getY();
-                double d0 = z + vector3d.getZ();
-                matrixStackIn.push();
+                double d2 = x + vector3d.x();
+                double d3 = y + vector3d.y();
+                double d0 = z + vector3d.z();
+                matrixStackIn.pushPose();
                 matrixStackIn.translate(d2, d3, d0);
-                bubbleParts.renderBubbleParts(entityIn, yaw, partialTicks, matrixStackIn, bufferIn, renderManager.getPackedLight(entityIn, partialTicks));
+                bubbleParts.renderBubbleParts(entityIn, yaw, partialTicks, matrixStackIn, bufferIn, renderManager.getPackedLightCoords(entityIn, partialTicks));
 
-                matrixStackIn.pop();
+                matrixStackIn.popPose();
             } catch (Throwable throwable) {
-                CrashReport crashreport = CrashReport.makeCrashReport(throwable, "Rendering entity in world");
-                CrashReportCategory crashreportcategory = crashreport.makeCategory("Entity being rendered");
-                entityIn.fillCrashReport(crashreportcategory);
-                CrashReportCategory crashreportcategory1 = crashreport.makeCategory("Renderer details");
-                crashreportcategory1.addDetail("Assigned renderer", renderer);
-                crashreportcategory1.addDetail("Location", CrashReportCategory.getCoordinateInfo(x, y, z));
-                crashreportcategory1.addDetail("Rotation", yaw);
-                crashreportcategory1.addDetail("Delta", partialTicks);
+                CrashReport crashreport = CrashReport.forThrowable(throwable, "Rendering entity in world");
+                CrashReportCategory crashreportcategory = crashreport.addCategory("Entity being rendered");
+                entityIn.fillCrashReportCategory(crashreportcategory);
+                CrashReportCategory crashreportcategory1 = crashreport.addCategory("Renderer details");
+                crashreportcategory1.setDetail("Assigned renderer", renderer);
+                crashreportcategory1.setDetail("Location", CrashReportCategory.formatLocation(x, y, z));
+                crashreportcategory1.setDetail("Rotation", yaw);
+                crashreportcategory1.setDetail("Delta", partialTicks);
                 throw new ReportedException(crashreport);
             }
         }

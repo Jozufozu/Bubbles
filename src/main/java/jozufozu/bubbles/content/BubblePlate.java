@@ -37,17 +37,17 @@ public class BubblePlate extends Block implements ISafeBlock {
     protected static final AxisAlignedBB DETECTION_AABB = new AxisAlignedBB(0.0625, 0.0625, 0.0625, 0.9375, 0.9375, 0.9375);
 
     static {
-        VoxelShape pressedNorth = Block.makeCuboidShape(1, 1, 0, 15, 15, 1);
-        PRESSED_SHAPES[0] = Block.makeCuboidShape(1, 0, 1, 15, 1, 15);
-        PRESSED_SHAPES[1] = Block.makeCuboidShape(1, 15D, 1, 15, 16, 15);
+        VoxelShape pressedNorth = Block.box(1, 1, 0, 15, 15, 1);
+        PRESSED_SHAPES[0] = Block.box(1, 0, 1, 15, 1, 15);
+        PRESSED_SHAPES[1] = Block.box(1, 15D, 1, 15, 16, 15);
         PRESSED_SHAPES[2] = pressedNorth;
         PRESSED_SHAPES[3] = ShapeUtil.rotateY(pressedNorth, 180);
         PRESSED_SHAPES[4] = ShapeUtil.rotateY(pressedNorth, 90);
         PRESSED_SHAPES[5] = ShapeUtil.rotateY(pressedNorth, 270);
 
-        VoxelShape unpressedNorth = Block.makeCuboidShape(1, 1, 0, 15, 15, 2);
-        UNPRESSED_SHAPES[0] = Block.makeCuboidShape(1, 0, 1, 15, 2, 15);
-        UNPRESSED_SHAPES[1] = Block.makeCuboidShape(1, 14, 1, 15, 16, 15);
+        VoxelShape unpressedNorth = Block.box(1, 1, 0, 15, 15, 2);
+        UNPRESSED_SHAPES[0] = Block.box(1, 0, 1, 15, 2, 15);
+        UNPRESSED_SHAPES[1] = Block.box(1, 14, 1, 15, 16, 15);
         UNPRESSED_SHAPES[2] = unpressedNorth;
         UNPRESSED_SHAPES[3] = ShapeUtil.rotateY(unpressedNorth, 180);
         UNPRESSED_SHAPES[4] = ShapeUtil.rotateY(unpressedNorth, 90);
@@ -58,32 +58,32 @@ public class BubblePlate extends Block implements ISafeBlock {
     public static final DirectionProperty SIDE = DirectionProperty.create("side", dir -> true);
 
     public BubblePlate() {
-        super(AbstractBlock.Properties.create(SoapBlock.SOAP).slipperiness(0.99f));
+        super(AbstractBlock.Properties.of(SoapBlock.SOAP).friction(0.99f));
 
-        this.setDefaultState(this.stateContainer.getBaseState().with(POWERED, Boolean.FALSE).with(SIDE, Direction.DOWN));
+        this.registerDefaultState(this.stateDefinition.any().setValue(POWERED, Boolean.FALSE).setValue(SIDE, Direction.DOWN));
     }
 
     @Override
-    protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateContainer.Builder<Block, BlockState> builder) {
         builder.add(POWERED, SIDE);
     }
 
     public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
-        int index = state.get(SIDE).getIndex();
+        int index = state.getValue(SIDE).get3DDataValue();
         return this.getRedstoneStrength(state) > 0 ? PRESSED_SHAPES[index] : UNPRESSED_SHAPES[index];
     }
 
     /**
      * Return true if an entity can be spawned inside the block (used to get the player's bed spawn location)
      */
-    public boolean canSpawnInBlock() {
+    public boolean isPossibleToRespawnInThis() {
         return true;
     }
 
     @Nullable
     @Override
     public BlockState getStateForPlacement(BlockItemUseContext context) {
-        return this.getDefaultState().with(SIDE, context.getFace().getOpposite());
+        return this.defaultBlockState().setValue(SIDE, context.getClickedFace().getOpposite());
     }
 
     /**
@@ -92,14 +92,14 @@ public class BubblePlate extends Block implements ISafeBlock {
      * returns its solidified counterpart.
      * Note that this method should ideally consider only the specific face passed in.
      */
-    public BlockState updatePostPlacement(BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) {
-        return !stateIn.isValidPosition(worldIn, currentPos) ? Blocks.AIR.getDefaultState() : stateIn;
+    public BlockState updateShape(BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) {
+        return !stateIn.canSurvive(worldIn, currentPos) ? Blocks.AIR.defaultBlockState() : stateIn;
     }
 
-    public boolean isValidPosition(BlockState state, IWorldReader worldIn, BlockPos pos) {
-        Direction direction = state.get(SIDE);
-        BlockPos blockpos = pos.offset(direction);
-        return hasEnoughSolidSide(worldIn, blockpos, direction.getOpposite());
+    public boolean canSurvive(BlockState state, IWorldReader worldIn, BlockPos pos) {
+        Direction direction = state.getValue(SIDE);
+        BlockPos blockpos = pos.relative(direction);
+        return canSupportCenter(worldIn, blockpos, direction.getOpposite());
     }
 
     public void tick(BlockState state, ServerWorld worldIn, BlockPos pos, Random rand) {
@@ -109,8 +109,8 @@ public class BubblePlate extends Block implements ISafeBlock {
         }
     }
 
-    public void onEntityCollision(BlockState state, World worldIn, BlockPos pos, Entity entityIn) {
-        if (!worldIn.isRemote) {
+    public void entityInside(BlockState state, World worldIn, BlockPos pos, Entity entityIn) {
+        if (!worldIn.isClientSide) {
             int i = this.getRedstoneStrength(state);
             if (i == 0) {
                 this.updateState(worldIn, pos, state, i);
@@ -127,9 +127,9 @@ public class BubblePlate extends Block implements ISafeBlock {
         boolean flag1 = i > 0;
         if (oldRedstoneStrength != i) {
             BlockState blockstate = this.setRedstoneStrength(state, i);
-            worldIn.setBlockState(pos, blockstate, 2);
+            worldIn.setBlock(pos, blockstate, 2);
             this.updateNeighbors(worldIn, pos, state);
-            worldIn.markBlockRangeForRenderUpdate(pos, state, blockstate);
+            worldIn.setBlocksDirty(pos, state, blockstate);
         }
 
         if (!flag1 && flag) {
@@ -139,70 +139,70 @@ public class BubblePlate extends Block implements ISafeBlock {
         }
 
         if (flag1) {
-            worldIn.getPendingBlockTicks().scheduleTick(pos.toImmutable(), this, 20);
+            worldIn.getBlockTicks().scheduleTick(pos.immutable(), this, 20);
         }
     }
 
-    public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
-        if (!isMoving && !state.isIn(newState.getBlock())) {
+    public void onRemove(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
+        if (!isMoving && !state.is(newState.getBlock())) {
             if (this.getRedstoneStrength(state) > 0) {
                 this.updateNeighbors(worldIn, pos, state);
             }
 
-            super.onReplaced(state, worldIn, pos, newState, isMoving);
+            super.onRemove(state, worldIn, pos, newState, isMoving);
         }
     }
 
     protected void updateNeighbors(World worldIn, BlockPos pos, BlockState state) {
-        worldIn.notifyNeighborsOfStateChange(pos, this);
-        worldIn.notifyNeighborsOfStateChange(pos.offset(state.get(SIDE)), this);
+        worldIn.updateNeighborsAt(pos, this);
+        worldIn.updateNeighborsAt(pos.relative(state.getValue(SIDE)), this);
     }
 
-    public int getWeakPower(BlockState blockState, IBlockReader blockAccess, BlockPos pos, Direction side) {
+    public int getSignal(BlockState blockState, IBlockReader blockAccess, BlockPos pos, Direction side) {
         return this.getRedstoneStrength(blockState);
     }
 
-    public int getStrongPower(BlockState blockState, IBlockReader blockAccess, BlockPos pos, Direction side) {
-        return side == blockState.get(SIDE).getOpposite() ? this.getRedstoneStrength(blockState) : 0;
+    public int getDirectSignal(BlockState blockState, IBlockReader blockAccess, BlockPos pos, Direction side) {
+        return side == blockState.getValue(SIDE).getOpposite() ? this.getRedstoneStrength(blockState) : 0;
     }
 
-    public boolean canProvidePower(BlockState state) {
+    public boolean isSignalSource(BlockState state) {
         return true;
     }
 
-    public PushReaction getPushReaction(BlockState state) {
+    public PushReaction getPistonPushReaction(BlockState state) {
         return PushReaction.DESTROY;
     }
 
     protected int getRedstoneStrength(BlockState state) {
-        return state.get(POWERED) ? 15 : 0;
+        return state.getValue(POWERED) ? 15 : 0;
     }
 
     protected BlockState setRedstoneStrength(BlockState state, int strength) {
-        return state.with(POWERED, strength > 0);
+        return state.setValue(POWERED, strength > 0);
     }
 
     protected void playClickOnSound(IWorld worldIn, BlockPos pos) {
         if (this.material != Material.WOOD && this.material != Material.NETHER_WOOD) {
-            worldIn.playSound(null, pos, SoundEvents.BLOCK_STONE_PRESSURE_PLATE_CLICK_ON, SoundCategory.BLOCKS, 0.3F, 0.6F);
+            worldIn.playSound(null, pos, SoundEvents.STONE_PRESSURE_PLATE_CLICK_ON, SoundCategory.BLOCKS, 0.3F, 0.6F);
         } else {
-            worldIn.playSound(null, pos, SoundEvents.BLOCK_WOODEN_PRESSURE_PLATE_CLICK_ON, SoundCategory.BLOCKS, 0.3F, 0.8F);
+            worldIn.playSound(null, pos, SoundEvents.WOODEN_PRESSURE_PLATE_CLICK_ON, SoundCategory.BLOCKS, 0.3F, 0.8F);
         }
 
     }
 
     protected void playClickOffSound(IWorld worldIn, BlockPos pos) {
         if (this.material != Material.WOOD && this.material != Material.NETHER_WOOD) {
-            worldIn.playSound(null, pos, SoundEvents.BLOCK_STONE_PRESSURE_PLATE_CLICK_OFF, SoundCategory.BLOCKS, 0.3F, 0.5F);
+            worldIn.playSound(null, pos, SoundEvents.STONE_PRESSURE_PLATE_CLICK_OFF, SoundCategory.BLOCKS, 0.3F, 0.5F);
         } else {
-            worldIn.playSound(null, pos, SoundEvents.BLOCK_WOODEN_PRESSURE_PLATE_CLICK_OFF, SoundCategory.BLOCKS, 0.3F, 0.7F);
+            worldIn.playSound(null, pos, SoundEvents.WOODEN_PRESSURE_PLATE_CLICK_OFF, SoundCategory.BLOCKS, 0.3F, 0.7F);
         }
 
     }
 
     protected int computeRedstoneStrength(World worldIn, BlockPos pos) {
-        AxisAlignedBB axisalignedbb = DETECTION_AABB.offset(pos);
-        List<? extends Entity> list = worldIn.getEntitiesWithinAABB(BubbleEntity.class, axisalignedbb);
+        AxisAlignedBB axisalignedbb = DETECTION_AABB.move(pos);
+        List<? extends Entity> list = worldIn.getEntitiesOfClass(BubbleEntity.class, axisalignedbb);
 
         return list.isEmpty() ? 0 : 15;
     }

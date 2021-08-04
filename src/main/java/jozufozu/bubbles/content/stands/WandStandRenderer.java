@@ -25,21 +25,21 @@ public class WandStandRenderer extends AbstractStandRenderer<WandStandEntity> {
 
     @Override
     protected void renderAttachment(WandStandEntity stand, float entityYaw, float partialTicks, MatrixStack matrixStack, IRenderTypeBuffer buffer, int packedLight) {
-        IVertexBuilder ringBuffer = buffer.getBuffer(this.ring.getRenderType(BUBBLE_RING));
-        this.ring.render(matrixStack, ringBuffer, packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        IVertexBuilder ringBuffer = buffer.getBuffer(this.ring.renderType(BUBBLE_RING));
+        this.ring.renderToBuffer(matrixStack, ringBuffer, packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     @Override
     public void renderBubbleParts(WandStandEntity stand, float entityYaw, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn, int packedLightIn) {
-        matrixStackIn.push();
+        matrixStackIn.pushPose();
 
         applyRotation(stand, entityYaw, partialTicks, matrixStackIn);
         double length = MathHelper.lerp(partialTicks, stand.lastTickLength, stand.getLength());
 
         matrixStackIn.translate(0, length, 0);
 
-        IVertexBuilder ivertexbuilder = bufferIn.getBuffer(this.film.getRenderType(FILM));
-        this.film.render(matrixStackIn, ivertexbuilder, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
-        matrixStackIn.pop();
+        IVertexBuilder ivertexbuilder = bufferIn.getBuffer(this.film.renderType(FILM));
+        this.film.renderToBuffer(matrixStackIn, ivertexbuilder, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        matrixStackIn.popPose();
     }
 }

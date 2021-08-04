@@ -14,26 +14,28 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 
+import net.minecraft.item.Item.Properties;
+
 public class BubbleStandItem extends Item {
 
     public final EntityType<? extends AbstractStandEntity> type;
 
     public BubbleStandItem(EntityType<? extends AbstractStandEntity> type) {
-        super(new Properties().group(ItemGroup.MISC));
+        super(new Properties().tab(ItemGroup.TAB_MISC));
 
         this.type = type;
     }
 
-    public ActionResultType onItemUse(ItemUseContext context) {
-        Direction orientation = context.getFace();
-        World world = context.getWorld();
-        ItemStack itemstack = context.getItem();
+    public ActionResultType useOn(ItemUseContext context) {
+        Direction orientation = context.getClickedFace();
+        World world = context.getLevel();
+        ItemStack itemstack = context.getItemInHand();
 
-        Vector3d hitVec = context.getHitVec();
+        Vector3d hitVec = context.getClickLocation();
 
-        int xOffset = orientation.getXOffset();
-        int yOffset = orientation.getYOffset();
-        int zOffset = orientation.getZOffset();
+        int xOffset = orientation.getStepX();
+        int yOffset = orientation.getStepY();
+        int zOffset = orientation.getStepZ();
         int xCenter = Math.abs(xOffset);
         int yCenter = Math.abs(yOffset);
         int zCenter = Math.abs(zOffset);
@@ -44,21 +46,21 @@ public class BubbleStandItem extends Item {
 
         AxisAlignedBB box = AbstractStandEntity.calculateBoundingBox(orientation, new Vector3d(x, y, z));
 
-        if (world.hasNoCollisions(null, box, entity -> true) && world.getEntitiesWithinAABBExcludingEntity(null, box).isEmpty()) {
-            if (!world.isRemote) {
+        if (world.noCollision(null, box, entity -> true) && world.getEntities(null, box).isEmpty()) {
+            if (!world.isClientSide) {
                 AbstractStandEntity entity = type.create(world);
 
-                entity.setPosition(x, y, z);
+                entity.setPos(x, y, z);
                 entity.setOrientation(orientation);
 
-                entity.rotationYaw = (float) MathHelper.floor((MathHelper.wrapDegrees(context.getPlacementYaw() - 180.0F) + 22.5F) / 90.0F) * 90.0F;
+                entity.yRot = (float) MathHelper.floor((MathHelper.wrapDegrees(context.getRotation() - 180.0F) + 22.5F) / 90.0F) * 90.0F;
 
-                world.addEntity(entity);
-                world.playSound(null, entity.getPosX(), entity.getPosY(), entity.getPosZ(), SoundEvents.ENTITY_ARMOR_STAND_PLACE, SoundCategory.BLOCKS, 0.75F, 0.8F);
+                world.addFreshEntity(entity);
+                world.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.ARMOR_STAND_PLACE, SoundCategory.BLOCKS, 0.75F, 0.8F);
             }
 
             itemstack.shrink(1);
-            return ActionResultType.func_233537_a_(world.isRemote);
+            return ActionResultType.sidedSuccess(world.isClientSide);
         }
 
         return ActionResultType.FAIL;

@@ -33,7 +33,7 @@ import java.util.ListIterator;
 
 public class BubbleEntity extends Entity {
 
-    public static final DataParameter<Float> EMPTY_SIZE = EntityDataManager.createKey(BubbleEntity.class, DataSerializers.FLOAT);
+    public static final DataParameter<Float> EMPTY_SIZE = EntityDataManager.defineId(BubbleEntity.class, DataSerializers.FLOAT);
 
     private final ArrayList<PushForce> forces = new ArrayList<>();
 
@@ -48,17 +48,17 @@ public class BubbleEntity extends Entity {
     public BubbleEntity(World worldIn, double x, double y, double z, @Nullable PushForce spawnForce) {
         this(AllEntityTypes.BUBBLE, worldIn);
 
-        this.setPosition(x, y, z);
+        this.setPos(x, y, z);
         if (spawnForce != null) this.forces.add(spawnForce);
 
-        this.prevPosX = x;
-        this.prevPosY = y;
-        this.prevPosZ = z;
+        this.xo = x;
+        this.yo = y;
+        this.zo = z;
     }
 
     @Override
-    protected void registerData() {
-        this.dataManager.register(EMPTY_SIZE, AllEntityTypes.BUBBLE.getWidth());
+    protected void defineSynchedData() {
+        this.entityData.define(EMPTY_SIZE, AllEntityTypes.BUBBLE.getWidth());
     }
 
     public boolean containsEntity() {
@@ -71,11 +71,11 @@ public class BubbleEntity extends Entity {
     }
 
     public float getEmptySize() {
-        return this.dataManager.get(EMPTY_SIZE);
+        return this.entityData.get(EMPTY_SIZE);
     }
 
     public void setEmptySize(float size) {
-        this.dataManager.set(EMPTY_SIZE, size);
+        this.entityData.set(EMPTY_SIZE, size);
     }
 
     @Override
@@ -85,22 +85,22 @@ public class BubbleEntity extends Entity {
         Vector3d motion = this.applyForces();
 
         this.moveAndCollide(motion);
-        this.doBlockCollisions();
+        this.checkInsideBlocks();
 
-        if (this.getPosY() > world.getHeight()) this.pop();
+        if (this.getY() > level.getMaxBuildHeight()) this.pop();
 
-        this.recalculateSize();
+        this.refreshDimensions();
     }
 
     public void pop() {
         this.remove();
         for (Entity passenger : this.getPassengers()) {
-            passenger.dismount();
+            passenger.removeVehicle();
         }
     }
 
     private Vector3d applyForces() {
-        Vector3d motion = this.getMotion();
+        Vector3d motion = this.getDeltaMovement();
 
         double dx = motion.x;
         double dy = motion.y;
@@ -148,7 +148,7 @@ public class BubbleEntity extends Entity {
         if (entity.startRiding(this)) {
             Behaviors.doMountBehavior(this, entity);
 
-            this.recalculateSize();
+            this.refreshDimensions();
         }
     }
 
@@ -212,15 +212,15 @@ public class BubbleEntity extends Entity {
         AxisAlignedBB box = this.getBoundingBox();
 
         ArrayList<Collider.BlockCollider> blocks = new ArrayList<>();
-        AxisAlignedBB checkZone = box.union(box.offset(motion)).grow(0.5);
-        CollisionUtil.makeBlockColliderIterator(world, this, checkZone).forEachRemaining(blocks::add);
+        AxisAlignedBB checkZone = box.minmax(box.move(motion)).inflate(0.5);
+        CollisionUtil.makeBlockColliderIterator(level, this, checkZone).forEachRemaining(blocks::add);
 
         // this bubble should pop if it ends up inside a block somehow
-        if (!world.isRemote) {
+        if (!level.isClientSide) {
             VoxelShape ourShape = VoxelShapes.create(box);
 
             for (Collider.BlockCollider block : blocks) {
-                if (VoxelShapes.compare(block.collider, ourShape, IBooleanFunction.AND)) {
+                if (VoxelShapes.joinIsNotEmpty(block.collider, ourShape, IBooleanFunction.AND)) {
                     this.pop();
                     return;
                 }
@@ -228,7 +228,7 @@ public class BubbleEntity extends Entity {
         }
 
         ArrayList<Collider.EntityCollider> entities = new ArrayList<>();
-        CollisionUtil.makeEntityColliderIterator(world, this, checkZone).forEachRemaining(entities::add);
+        CollisionUtil.makeEntityColliderIterator(level, this, checkZone).forEachRemaining(entities::add);
 
         double minX = box.minX;
         double minY = box.minY;
@@ -259,7 +259,7 @@ public class BubbleEntity extends Entity {
 
                 Entity entity = entityCollider.entity;
 
-                if (entity.getRidingEntity() instanceof BubbleEntity) {
+                if (entity.getVehicle() instanceof BubbleEntity) {
                     scanEntities.remove();
                     continue;
                 }
@@ -272,7 +272,7 @@ public class BubbleEntity extends Entity {
                         if (this.canCombine(other)) combineWith.add(other);
                     } else if (entity instanceof AbstractStandEntity) {
                         handleBubbleStandCollision((AbstractStandEntity) entity);
-                    } else if (!world.isRemote && canCollideWithEntity(entity)) {
+                    } else if (!level.isClientSide && canCollideWithEntity(entity)) {
                         onCollideWithEntity(entity);
                     }
 
@@ -285,11 +285,11 @@ public class BubbleEntity extends Entity {
                 Collider.BlockCollider collider = scanBlocks.next();
 
                 Block block = collider.state.getBlock();
-                List<AxisAlignedBB> bbs = collider.collider.toBoundingBoxList();
+                List<AxisAlignedBB> bbs = collider.collider.toAabbs();
 
                 final boolean isSafe;
                 if (block instanceof ISafeBlock) {
-                    isSafe = ((ISafeBlock) block).isBlockSafe(collider.state, world, collider.pos);
+                    isSafe = ((ISafeBlock) block).isBlockSafe(collider.state, level, collider.pos);
                 } else {
                     isSafe = false;
                 }
@@ -302,7 +302,7 @@ public class BubbleEntity extends Entity {
                         // if this is touching something dangerous it should pop immediately, 
                         // but we don't trust the client to make the call
                         if (!isSafe) {
-                            if (!world.isRemote) this.pop();
+                            if (!level.isClientSide) this.pop();
                             break main;
                         }
 
@@ -336,9 +336,9 @@ public class BubbleEntity extends Entity {
             }
         }
 
-        this.setMotion(stepX * steps, stepY * steps, stepZ * steps);
+        this.setDeltaMovement(stepX * steps, stepY * steps, stepZ * steps);
 
-        this.setPosition((minX + maxX) * 0.5, minY, (minZ + maxZ) * 0.5);
+        this.setPos((minX + maxX) * 0.5, minY, (minZ + maxZ) * 0.5);
 
         if (!combineWith.isEmpty()) this.combineAll(combineWith);
     }
@@ -364,10 +364,10 @@ public class BubbleEntity extends Entity {
     }
 
     public void addForce(PushForce force) {
-        if (this.ticksExisted > 0) this.forces.add(force);
+        if (this.tickCount > 0) this.forces.add(force);
     }
 
-    public void recalculateSize() {
+    public void refreshDimensions() {
         List<Entity> passengers = this.passengers;
 
         float potentialSize = 0;
@@ -375,52 +375,52 @@ public class BubbleEntity extends Entity {
         if (!passengers.isEmpty()) {
             AxisAlignedBB entityBoundingBox = passengers.get(0).getBoundingBox();
 
-            double xSize = entityBoundingBox.getXSize();
-            double ySize = entityBoundingBox.getYSize();
-            double zSize = entityBoundingBox.getZSize();
+            double xSize = entityBoundingBox.getXsize();
+            double ySize = entityBoundingBox.getYsize();
+            double zSize = entityBoundingBox.getZsize();
 
             double size = Math.max(xSize, Math.max(ySize, zSize));
 
             potentialSize = (float) Math.max(size + 0.6, size * 1.25);
         }
 
-        float emptySize = dataManager == null ? AllEntityTypes.BUBBLE.getWidth() : this.getEmptySize();
+        float emptySize = entityData == null ? AllEntityTypes.BUBBLE.getWidth() : this.getEmptySize();
         potentialSize = Math.max(emptySize, potentialSize);
 
-        this.size = new EntitySize(potentialSize, potentialSize, false);
+        this.dimensions = new EntitySize(potentialSize, potentialSize, false);
 
-        double radius = (double) this.size.width / 2.0D;
-        this.setBoundingBox(new AxisAlignedBB(this.getPosX() - radius, this.getPosY(), this.getPosZ() - radius, this.getPosX() + radius, this.getPosY() + (double)this.size.height, this.getPosZ() + radius));
+        double radius = (double) this.dimensions.width / 2.0D;
+        this.setBoundingBox(new AxisAlignedBB(this.getX() - radius, this.getY(), this.getZ() - radius, this.getX() + radius, this.getY() + (double)this.dimensions.height, this.getZ() + radius));
     }
 
     @Override
-    public void setPosition(double x, double y, double z) {
-        this.setRawPosition(x, y, z);
-        this.recalculateSize();
+    public void setPos(double x, double y, double z) {
+        this.setPosRaw(x, y, z);
+        this.refreshDimensions();
     }
 
     @Override
-    public EntitySize getSize(Pose poseIn) {
-        return this.size;
+    public EntitySize getDimensions(Pose poseIn) {
+        return this.dimensions;
     }
 
     @Override
-    public double getMountedYOffset() {
+    public double getPassengersRidingOffset() {
         return 0.05;
     }
 
     @Override
-    public void updatePassenger(Entity passenger) {
-        if (this.isPassenger(passenger)) {
-            double y = this.getPosY() + this.getMountedYOffset();
-            passenger.setPosition(this.getPosX(), y, this.getPosZ());
+    public void positionRider(Entity passenger) {
+        if (this.hasPassenger(passenger)) {
+            double y = this.getY() + this.getPassengersRidingOffset();
+            passenger.setPos(this.getX(), y, this.getZ());
         }
 
         Behaviors.doTickBehavior(this, passenger);
     }
 
     @Override
-    protected boolean canBeRidden(Entity entityIn) {
+    protected boolean canRide(Entity entityIn) {
         return true;
     }
 
@@ -440,33 +440,33 @@ public class BubbleEntity extends Entity {
     }
 
     @Override
-    public void notifyDataManagerChange(DataParameter<?> key) {
-        if (EMPTY_SIZE.equals(key)) this.recalculateSize();
+    public void onSyncedDataUpdated(DataParameter<?> key) {
+        if (EMPTY_SIZE.equals(key)) this.refreshDimensions();
     }
 
     @Override
-    public boolean attackEntityFrom(DamageSource source, float amount) {
+    public boolean hurt(DamageSource source, float amount) {
         this.pop();
         return false;
     }
 
     @Override
-    public boolean canBeAttackedWithItem() {
+    public boolean isAttackable() {
         return true;
     }
 
     @Override
-    public boolean hitByEntity(Entity entityIn) {
+    public boolean skipAttackInteraction(Entity entityIn) {
         return false;
     }
 
     @Override
-    public boolean canBeCollidedWith() {
+    public boolean isPickable() {
         return true;
     }
 
     @Override
-    protected void readAdditional(CompoundNBT compound) {
+    protected void readAdditionalSaveData(CompoundNBT compound) {
         setEmptySize(compound.getFloat("emptySize"));
 
         this.forces.clear();
@@ -475,7 +475,7 @@ public class BubbleEntity extends Entity {
     }
 
     @Override
-    protected void writeAdditional(CompoundNBT compound) {
+    protected void addAdditionalSaveData(CompoundNBT compound) {
         compound.putFloat("emptySize", this.getEmptySize());
 
         ListNBT forces = new ListNBT();
@@ -484,7 +484,7 @@ public class BubbleEntity extends Entity {
     }
 
     @Override
-    public IPacket<?> createSpawnPacket() {
+    public IPacket<?> getAddEntityPacket() {
         return NetworkHooks.getEntitySpawningPacket(this);
     }
 

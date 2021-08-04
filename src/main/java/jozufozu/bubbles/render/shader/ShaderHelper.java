@@ -12,6 +12,8 @@ import net.minecraft.resources.IReloadableResourceManager;
 import net.minecraft.resources.IResourceManager;
 import net.minecraft.resources.IResourceManagerReloadListener;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.vector.Vector3d;
+import org.lwjgl.opengl.GL20;
 import org.lwjgl.system.MemoryUtil;
 
 import javax.annotation.Nullable;
@@ -36,9 +38,9 @@ public class ShaderHelper {
         // Can be null when running datagenerators due to the unfortunate time we call this
         if (Minecraft.getInstance() != null
                 && Minecraft.getInstance().getResourceManager() instanceof IReloadableResourceManager) {
-            ((IReloadableResourceManager) Minecraft.getInstance().getResourceManager()).addReloadListener(
+            ((IReloadableResourceManager) Minecraft.getInstance().getResourceManager()).registerReloadListener(
                     (IResourceManagerReloadListener) manager -> {
-                        PROGRAMS.values().forEach(ShaderLinkHelper::deleteShader);
+                        PROGRAMS.values().forEach(ShaderLinkHelper::releaseProgram);
                         PROGRAMS.clear();
                         for (Shader shader : Shader.values()) {
                             createProgram(manager, shader);
@@ -57,28 +59,26 @@ public class ShaderHelper {
             return;
         }
 
-        int program = prog.getProgram();
-        ShaderLinkHelper.func_227804_a_(program);
+        int program = prog.getId();
+        ShaderLinkHelper.glUseProgram(program);
 
-        int time = GlStateManager.getUniformLocation(program, "time");
-        GlStateManager.uniform1i(time, ClientTickHandler.ticksInGame);
+        int time = GlStateManager._glGetUniformLocation(program, "time");
+        GL20.glUniform1i(time, ClientTickHandler.ticksInGame);
 
-        int partialTicks = GlStateManager.getUniformLocation(program, "partialTicks");
-        FLOAT_BUFFER.position(0);
-        FLOAT_BUFFER.put(0, ClientTickHandler.partialTicks);
-        GlStateManager.uniform1f(partialTicks, FLOAT_BUFFER);
+        int partialTicks = GlStateManager._glGetUniformLocation(program, "partialTicks");
+        GL20.glUniform1f(partialTicks, ClientTickHandler.partialTicks);
 
-        MainWindow window = Minecraft.getInstance().getMainWindow();
+        MainWindow window = Minecraft.getInstance().getWindow();
 
-        int height = window.getHeight();
-        int width = window.getWidth();
+        int height = window.getScreenHeight();
+        int width = window.getScreenWidth();
 
-        ShaderHelper.VEC2_BUFFER.position(0);
-        ShaderHelper.VEC2_BUFFER.put(0, (float) width);
-        ShaderHelper.VEC2_BUFFER.put(1, (float) height);
+        int windowSize = GlStateManager._glGetUniformLocation(program, "windowSize");
+        GL20.glUniform2f(windowSize, width, height);
 
-        int windowSize = GlStateManager.getUniformLocation(program, "windowSize");
-        GlStateManager.uniform2f(windowSize, ShaderHelper.VEC2_BUFFER);
+        Vector3d cameraPos = Minecraft.getInstance().getEntityRenderDispatcher().camera.getPosition();
+        int camera = GlStateManager._glGetUniformLocation(program, "cameraPos");
+        GL20.glUniform3f(camera, (float) cameraPos.x, (float) cameraPos.y, (float) cameraPos.z);
 
         if (cb != null) {
             cb.call(program);
@@ -86,7 +86,7 @@ public class ShaderHelper {
     }
 
     public static void releaseShader() {
-        ShaderLinkHelper.func_227804_a_(0);
+        ShaderLinkHelper.glUseProgram(0);
     }
 
     private static void createProgram(IResourceManager manager, Shader shader) {
@@ -108,7 +108,7 @@ public class ShaderHelper {
     private static ShaderLoader createShader(IResourceManager manager, String filename, ShaderLoader.ShaderType shaderType) throws IOException {
         ResourceLocation loc = new ResourceLocation(Bubbles.MODID, filename);
         try (InputStream is = new BufferedInputStream(manager.getResource(loc).getInputStream())) {
-            return ShaderLoader.func_216534_a(shaderType, loc.toString(), is, shaderType.name().toLowerCase(Locale.ROOT));
+            return ShaderLoader.compileShader(shaderType, loc.toString(), is, shaderType.name().toLowerCase(Locale.ROOT));
         }
     }
 
@@ -124,7 +124,7 @@ public class ShaderHelper {
         }
 
         @Override
-        public int getProgram() {
+        public int getId() {
             return program;
         }
 
@@ -134,12 +134,12 @@ public class ShaderHelper {
         }
 
         @Override
-        public ShaderLoader getVertexShaderLoader() {
+        public ShaderLoader getVertexProgram() {
             return vert;
         }
 
         @Override
-        public ShaderLoader getFragmentShaderLoader() {
+        public ShaderLoader getFragmentProgram() {
             return frag;
         }
     }

@@ -22,8 +22,8 @@ public class CraftingStandRenderer extends AbstractStandRenderer<CraftingStandEn
 
     @Override
     protected void renderAttachment(CraftingStandEntity stand, float entityYaw, float partialTicks, MatrixStack matrixStack, IRenderTypeBuffer buffer, int packedLight) {
-        IVertexBuilder ringBuffer = buffer.getBuffer(this.lattice.getRenderType(CRAFTING_LATTICE));
-        this.lattice.render(matrixStack, ringBuffer, packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        IVertexBuilder ringBuffer = buffer.getBuffer(this.lattice.renderType(CRAFTING_LATTICE));
+        this.lattice.renderToBuffer(matrixStack, ringBuffer, packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
     }
 
 }

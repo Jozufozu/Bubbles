@@ -19,41 +19,41 @@ public abstract class UpdraftParticle extends SpriteTexturedParticle {
     protected UpdraftParticle(IAnimatedSprite spriteWithAge, ClientWorld world, double x, double y, double z) {
         super(world, x, y, z);
         this.spriteWithAge = spriteWithAge;
-        this.canCollide = false;
-        mirrored = this.rand.nextBoolean();
+        this.hasPhysics = false;
+        mirrored = this.random.nextBoolean();
     }
 
     public void tick() {
-        this.prevPosX = this.posX;
-        this.prevPosY = this.posY;
-        this.prevPosZ = this.posZ;
-        this.motionY += 0.005D;
-        if (this.age++ >= this.maxAge) {
-            this.setExpired();
+        this.xo = this.x;
+        this.yo = this.y;
+        this.zo = this.z;
+        this.yd += 0.005D;
+        if (this.age++ >= this.lifetime) {
+            this.remove();
         } else {
-            this.selectSpriteWithAge(this.spriteWithAge);
-            this.move(this.motionX, this.motionY, this.motionZ);
-            this.motionX *= 0.85;
-            this.motionZ *= 0.85;
+            this.setSpriteFromAge(this.spriteWithAge);
+            this.move(this.xd, this.yd, this.zd);
+            this.xd *= 0.85;
+            this.zd *= 0.85;
 
-            if (this.world.getBlockState(new BlockPos(this.posX, this.posY, this.posZ)).isSolid()) {
-                this.setExpired();
+            if (this.level.getBlockState(new BlockPos(this.x, this.y, this.z)).canOcclude()) {
+                this.remove();
             }
         }
     }
 
-    public void renderParticle(IVertexBuilder buffer, ActiveRenderInfo renderInfo, float partialTicks) {
-        Vector3d cameraPos = renderInfo.getProjectedView();
-        float x = (float)(MathHelper.lerp(partialTicks, this.prevPosX, this.posX) - cameraPos.getX());
-        float y = (float)(MathHelper.lerp(partialTicks, this.prevPosY, this.posY) - cameraPos.getY());
-        float z = (float)(MathHelper.lerp(partialTicks, this.prevPosZ, this.posZ) - cameraPos.getZ());
+    public void render(IVertexBuilder buffer, ActiveRenderInfo renderInfo, float partialTicks) {
+        Vector3d cameraPos = renderInfo.getPosition();
+        float x = (float)(MathHelper.lerp(partialTicks, this.xo, this.x) - cameraPos.x());
+        float y = (float)(MathHelper.lerp(partialTicks, this.yo, this.y) - cameraPos.y());
+        float z = (float)(MathHelper.lerp(partialTicks, this.zo, this.z) - cameraPos.z());
 
         Quaternion quaternion = new Quaternion(0.0F, 0.0F, 0.0F, 1.0F);
 
-        quaternion.multiply(Vector3f.YP.rotation((float) Math.atan2(x, z)));
+        quaternion.mul(Vector3f.YP.rotation((float) Math.atan2(x, z)));
 
         Vector3f[] quad = new Vector3f[]{new Vector3f(-1.0F, -1.0F, 0.0F), new Vector3f(-1.0F, 1.0F, 0.0F), new Vector3f(1.0F, 1.0F, 0.0F), new Vector3f(1.0F, -1.0F, 0.0F)};
-        float scale = this.getScale(partialTicks);
+        float scale = this.getQuadSize(partialTicks);
 
         for (int i = 0; i < 4; ++i) {
             Vector3f vector3f = quad[i];
@@ -62,11 +62,11 @@ public abstract class UpdraftParticle extends SpriteTexturedParticle {
             vector3f.add(x, y, z);
         }
 
-        float minU = this.getMinU();
-        float maxU = this.getMaxU();
-        float minV = this.getMinV();
-        float maxV = this.getMaxV();
-        int light = this.getBrightnessForRender(partialTicks);
+        float minU = this.getU0();
+        float maxU = this.getU1();
+        float minV = this.getV0();
+        float maxV = this.getV1();
+        int light = this.getLightColor(partialTicks);
 
         if (mirrored) {
             float t = minU;
@@ -74,9 +74,9 @@ public abstract class UpdraftParticle extends SpriteTexturedParticle {
             maxU = t;
         }
 
-        buffer.pos(quad[0].getX(), quad[0].getY(), quad[0].getZ()).tex(maxU, maxV).color(this.particleRed, this.particleGreen, this.particleBlue, this.particleAlpha).lightmap(light).endVertex();
-        buffer.pos(quad[1].getX(), quad[1].getY(), quad[1].getZ()).tex(maxU, minV).color(this.particleRed, this.particleGreen, this.particleBlue, this.particleAlpha).lightmap(light).endVertex();
-        buffer.pos(quad[2].getX(), quad[2].getY(), quad[2].getZ()).tex(minU, minV).color(this.particleRed, this.particleGreen, this.particleBlue, this.particleAlpha).lightmap(light).endVertex();
-        buffer.pos(quad[3].getX(), quad[3].getY(), quad[3].getZ()).tex(minU, maxV).color(this.particleRed, this.particleGreen, this.particleBlue, this.particleAlpha).lightmap(light).endVertex();
+        buffer.vertex(quad[0].x(), quad[0].y(), quad[0].z()).uv(maxU, maxV).color(this.rCol, this.gCol, this.bCol, this.alpha).uv2(light).endVertex();
+        buffer.vertex(quad[1].x(), quad[1].y(), quad[1].z()).uv(maxU, minV).color(this.rCol, this.gCol, this.bCol, this.alpha).uv2(light).endVertex();
+        buffer.vertex(quad[2].x(), quad[2].y(), quad[2].z()).uv(minU, minV).color(this.rCol, this.gCol, this.bCol, this.alpha).uv2(light).endVertex();
+        buffer.vertex(quad[3].x(), quad[3].y(), quad[3].z()).uv(minU, maxV).color(this.rCol, this.gCol, this.bCol, this.alpha).uv2(light).endVertex();
     }
 }

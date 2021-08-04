@@ -18,27 +18,27 @@ import java.util.Random;
 
 public class BlazingSoulFireBlock extends AbstractFireBlock {
 
-    public static final IntegerProperty BURN_TIME = BlockStateProperties.AGE_0_7;
+    public static final IntegerProperty BURN_TIME = BlockStateProperties.AGE_7;
 
     public BlazingSoulFireBlock() {
-        super(AbstractBlock.Properties.create(Material.FIRE, MaterialColor.LIGHT_BLUE).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel((state) -> 10).sound(SoundType.CLOTH), 3.0f);
-        this.setDefaultState(this.getStateContainer().getBaseState().with(BURN_TIME, 0));
+        super(AbstractBlock.Properties.of(Material.FIRE, MaterialColor.COLOR_LIGHT_BLUE).noCollission().instabreak().lightLevel((state) -> 10).sound(SoundType.WOOL), 3.0f);
+        this.registerDefaultState(this.getStateDefinition().any().setValue(BURN_TIME, 0));
     }
 
     public void tick(BlockState state, ServerWorld worldIn, BlockPos pos, Random rand) {
-        BlockPos up = pos.up();
+        BlockPos up = pos.above();
 
-        if (!worldIn.getBlockState(up).isIn(AllBlocks.UPDRAFT.get())) {
+        if (!worldIn.getBlockState(up).is(AllBlocks.UPDRAFT.get())) {
             UpdraftBlock.placeUpdraft(worldIn, up);
         }
 
-        int burn = state.get(BURN_TIME);
+        int burn = state.getValue(BURN_TIME);
         if (burn == 7) {
-            worldIn.setBlockState(pos, Blocks.SOUL_FIRE.getDefaultState());
-            worldIn.getPendingBlockTicks().scheduleTick(up, AllBlocks.UPDRAFT.get(), 1);
+            worldIn.setBlockAndUpdate(pos, Blocks.SOUL_FIRE.defaultBlockState());
+            worldIn.getBlockTicks().scheduleTick(up, AllBlocks.UPDRAFT.get(), 1);
         } else {
-            worldIn.setBlockState(pos, state.with(BURN_TIME, burn + 1), 22);
-            worldIn.getPendingBlockTicks().scheduleTick(pos, this, 20);
+            worldIn.setBlock(pos, state.setValue(BURN_TIME, burn + 1), 22);
+            worldIn.getBlockTicks().scheduleTick(pos, this, 20);
         }
     }
 
@@ -48,25 +48,25 @@ public class BlazingSoulFireBlock extends AbstractFireBlock {
      * returns its solidified counterpart.
      * Note that this method should ideally consider only the specific face passed in.
      */
-    public BlockState updatePostPlacement(BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) {
-        if (facing == Direction.UP && facingState.isIn(Blocks.AIR)) {
-            worldIn.getPendingBlockTicks().scheduleTick(currentPos, this, 20);
+    public BlockState updateShape(BlockState stateIn, Direction facing, BlockState facingState, IWorld worldIn, BlockPos currentPos, BlockPos facingPos) {
+        if (facing == Direction.UP && facingState.is(Blocks.AIR)) {
+            worldIn.getBlockTicks().scheduleTick(currentPos, this, 20);
         }
 
-        return this.isValidPosition(stateIn, worldIn, currentPos) ? stateIn : Blocks.AIR.getDefaultState();
+        return this.canSurvive(stateIn, worldIn, currentPos) ? stateIn : Blocks.AIR.defaultBlockState();
     }
 
-    public void onBlockAdded(BlockState state, World worldIn, BlockPos pos, BlockState oldState, boolean isMoving) {
-        worldIn.getPendingBlockTicks().scheduleTick(pos, this, 20);
+    public void onPlace(BlockState state, World worldIn, BlockPos pos, BlockState oldState, boolean isMoving) {
+        worldIn.getBlockTicks().scheduleTick(pos, this, 20);
     }
 
-    public boolean isValidPosition(BlockState state, IWorldReader worldIn, BlockPos pos) {
-        return SoulFireBlock.shouldLightSoulFire(worldIn.getBlockState(pos.down()).getBlock());
+    public boolean canSurvive(BlockState state, IWorldReader worldIn, BlockPos pos) {
+        return SoulFireBlock.canSurviveOnBlock(worldIn.getBlockState(pos.below()).getBlock());
     }
 
     @Override
-    protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
-        super.fillStateContainer(builder);
+    protected void createBlockStateDefinition(StateContainer.Builder<Block, BlockState> builder) {
+        super.createBlockStateDefinition(builder);
         builder.add(BURN_TIME);
     }
 

@@ -9,19 +9,19 @@ import net.minecraftforge.event.RegistryEvent;
 
 public class AllEntityTypes {
     @SuppressWarnings("unchecked")
-    public static final EntityType<WandStandEntity> BUBBLE_STAND = (EntityType<WandStandEntity>) EntityType.Builder.create(WandStandEntity::new, EntityClassification.MISC)
-                                                                                                                   .size(0.5f, 0.5f)
+    public static final EntityType<WandStandEntity> BUBBLE_STAND = (EntityType<WandStandEntity>) EntityType.Builder.of(WandStandEntity::new, EntityClassification.MISC)
+                                                                                                                   .sized(0.5f, 0.5f)
                                                                                                                    .build("bubbles:bubble_stand")
                                                                                                                    .setRegistryName("bubbles:bubble_stand");
 
     @SuppressWarnings("unchecked")
-    public static final EntityType<CraftingStandEntity> CRAFTING_STAND = (EntityType<CraftingStandEntity>) EntityType.Builder.create(CraftingStandEntity::new, EntityClassification.MISC)
-                                                                                                                             .size(0.5f, 0.5f)
+    public static final EntityType<CraftingStandEntity> CRAFTING_STAND = (EntityType<CraftingStandEntity>) EntityType.Builder.of(CraftingStandEntity::new, EntityClassification.MISC)
+                                                                                                                             .sized(0.5f, 0.5f)
                                                                                                                              .build("bubbles:crafting_stand")
                                                                                                                              .setRegistryName("bubbles:crafting_stand");
     @SuppressWarnings("unchecked")
-    public static final EntityType<BubbleEntity> BUBBLE = (EntityType<BubbleEntity>) EntityType.Builder.create(BubbleEntity::new, EntityClassification.MISC)
-                                                                                                       .size(0.5f, 0.5f)
+    public static final EntityType<BubbleEntity> BUBBLE = (EntityType<BubbleEntity>) EntityType.Builder.of(BubbleEntity::new, EntityClassification.MISC)
+                                                                                                       .sized(0.5f, 0.5f)
                                                                                                        .setShouldReceiveVelocityUpdates(true)
                                                                                                        .build("bubbles:bubble")
                                                                                                        .setRegistryName("bubbles:bubble");

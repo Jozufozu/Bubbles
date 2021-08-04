@@ -13,30 +13,30 @@ public class CraftingLatticeModel extends EntityModel<AbstractStandEntity> {
 	private final ModelRenderer bb_main;
 
 	public CraftingLatticeModel() {
-		textureWidth = 16;
-		textureHeight = 16;
+		texWidth = 16;
+		texHeight = 16;
 
 		bb_main = new ModelRenderer(this);
-		bb_main.setRotationPoint(0.0F, 24.0F, 0.0F);
-		bb_main.setTextureOffset(4, 4).addBox(-1.75F, -3.0F, -0.75F, 1.0F, 6.0F, 1.0F, 0.0F, false);
-		bb_main.setTextureOffset(0, 4).addBox(0.75F, -3.0F, -0.75F, 1.0F, 6.0F, 1.0F, 0.0F, false);
-		bb_main.setTextureOffset(0, 2).addBox(-3.0F, 0.75F, -0.25F, 6.0F, 1.0F, 1.0F, 0.0F, false);
-		bb_main.setTextureOffset(0, 0).addBox(-3.0F, -1.75F, -0.25F, 6.0F, 1.0F, 1.0F, 0.0F, false);
+		bb_main.setPos(0.0F, 24.0F, 0.0F);
+		bb_main.texOffs(4, 4).addBox(-1.75F, -3.0F, -0.75F, 1.0F, 6.0F, 1.0F, 0.0F, false);
+		bb_main.texOffs(0, 4).addBox(0.75F, -3.0F, -0.75F, 1.0F, 6.0F, 1.0F, 0.0F, false);
+		bb_main.texOffs(0, 2).addBox(-3.0F, 0.75F, -0.25F, 6.0F, 1.0F, 1.0F, 0.0F, false);
+		bb_main.texOffs(0, 0).addBox(-3.0F, -1.75F, -0.25F, 6.0F, 1.0F, 1.0F, 0.0F, false);
 	}
 
 	@Override
-	public void setRotationAngles(AbstractStandEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch){
+	public void setupAnim(AbstractStandEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch){
 		//previously the render function, render code was moved to a method below
 	}
 
 	@Override
-	public void render(MatrixStack matrixStack, IVertexBuilder buffer, int packedLight, int packedOverlay, float red, float green, float blue, float alpha){
+	public void renderToBuffer(MatrixStack matrixStack, IVertexBuilder buffer, int packedLight, int packedOverlay, float red, float green, float blue, float alpha){
 		bb_main.render(matrixStack, buffer, packedLight, packedOverlay);
 	}
 
 	public void setRotationAngle(ModelRenderer modelRenderer, float x, float y, float z) {
-		modelRenderer.rotateAngleX = x;
-		modelRenderer.rotateAngleY = y;
-		modelRenderer.rotateAngleZ = z;
+		modelRenderer.xRot = x;
+		modelRenderer.yRot = y;
+		modelRenderer.zRot = z;
 	}
 }

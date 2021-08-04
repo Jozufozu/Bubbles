@@ -9,6 +9,9 @@ import net.minecraft.client.renderer.entity.EntityRendererManager;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.ResourceLocation;
 
+import jozufozu.bubbles.render.FancyRenderedModel.PositionNormalVertex;
+import jozufozu.bubbles.render.FancyRenderedModel.TexturedQuad;
+
 public class BubbleRenderer extends EntityRendererWithBubbleParts<BubbleEntity> {
     private static final ResourceLocation TEXTURE = new ResourceLocation("bubbles:textures/entity/bubble.png");
 
@@ -19,29 +22,29 @@ public class BubbleRenderer extends EntityRendererWithBubbleParts<BubbleEntity> 
     }
 
     @Override
-    public ResourceLocation getEntityTexture(BubbleEntity entity) {
+    public ResourceLocation getTextureLocation(BubbleEntity entity) {
         return TEXTURE;
     }
 
     @Override
     public void renderBubbleParts(BubbleEntity entityIn, float entityYaw, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn, int packedLightIn) {
-        matrixStackIn.push();
+        matrixStackIn.pushPose();
 
-        float size = (float) entityIn.getBoundingBox().getXSize();
+        float size = (float) entityIn.getBoundingBox().getXsize();
 
         matrixStackIn.scale(size, size, size);
 
-        IVertexBuilder ivertexbuilder = bufferIn.getBuffer(this.bubbleModel.getRenderType(this.getEntityTexture(entityIn)));
-        this.bubbleModel.render(matrixStackIn, ivertexbuilder, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        IVertexBuilder ivertexbuilder = bufferIn.getBuffer(this.bubbleModel.renderType(this.getTextureLocation(entityIn)));
+        this.bubbleModel.renderToBuffer(matrixStackIn, ivertexbuilder, packedLightIn, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
 
-        matrixStackIn.pop();
+        matrixStackIn.popPose();
     }
 
     public static class BubbleModel extends FancyRenderedModel {
 
         public BubbleModel() {
-            this.textureHeight = 16;
-            this.textureWidth = 16;
+            this.texHeight = 16;
+            this.texWidth = 16;
 
             this.quads = new TexturedQuad[6];
 

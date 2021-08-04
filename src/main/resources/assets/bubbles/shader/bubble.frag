@@ -18,12 +18,14 @@
 #define FRESNEL_RATIO 0.7			 // fresnel weight for reflectance
 #define SIGMOID_CONTRAST 8.0         // contrast enhancement
 
+#define PI 3.1415926538
 #define TWO_PI 6.28318530718
 #define WAVELENGTHS 6				 // number of wavelengths, not a free parameter
 
 
 varying vec3 pos;
 varying vec3 normal;
+
 uniform sampler2D bgl_RenderedTexture;
 uniform int time; // Passed in, see ShaderHelper.java
 uniform float partialTicks; // Passed in, see ShaderHelper.java
@@ -142,6 +144,74 @@ vec3 contrast(vec3 x) {
     return 1.0 / (1.0 + exp(-SIGMOID_CONTRAST * (x - 0.5)));
 }
 
+vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+float snoise(vec3 v) {
+    const vec4 C = vec4(
+        0.211324865405187,  // (3.0-sqrt(3.0))/6.0
+        0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)
+       -0.577350269189626, // -1.0 + 2.0 * C.x
+        0.024390243902439   // 1.0 / 41.0
+    );
+    vec3 i  = floor(v + dot(v, C.yyy) );
+    vec3 x0 = v -   i + dot(i, C.xxx);
+    vec2 i1;
+    i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    vec4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+    i = mod289(i); // Avoid truncation effects in permutation
+    vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+    + i.x + vec3(0.0, i1.x, 1.0 ));
+
+    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+    //m = m*m ;
+    m = m*m ;
+    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+    vec3 h = abs(x) - 0.5;
+    vec3 ox = floor(x + 0.5);
+    vec3 a0 = x - ox;
+    m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+    vec3 g;
+    g.x  = a0.x  * x0.x  + h.x  * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    return 130. * dot(m, g);
+}
+
+#define OCTAVES 3
+float turbulence (in vec3 st) {
+    // Initial values
+    float value = 0.0;
+    float amplitude = .3;
+    float frequency = 0.;
+    //
+    // Loop of octaves
+    for (int i = 0; i < OCTAVES; i++) {
+        value += amplitude * abs(snoise(st));
+        st *= 2.;
+        amplitude *= .5;
+    }
+    return value;
+}
+
+float filmThickness(vec3 pos) {
+//
+//    pos *= 0.2;
+//
+//    float DF = 0.0;
+//
+//    float t = float(time) + partialTicks;
+//
+//    // Add a random position
+//    float a = snoise(pos*vec2(cos(t * 0.150),sin(snoise(vec2(t * 0.092, 1.)))) * 0.1) * PI;
+//    vec2 vel = vec2(cos(a), sin(a));
+//
+//    return turbulence(vec2(snoise(pos+vel)) + vec2(t * 0.1))*0.778;
+    return 0.5 + noise(vec3((float(time) + partialTicks) / 200.0) + pos) * 0.5;
+    //return 0.5 + turbulence(noise3(vec3((float(time) + partialTicks) / 200.0) + pos)) * 0.5;
+}
+
 void main() {
     vec3 color = vec3(0.0);
     float incidence = 0.0;
@@ -156,13 +226,14 @@ void main() {
     vec3 norm = normalize(abs(sdf(normal))) * 0.8 + vec3(0.2);
 
     float dh = (0.666 / windowSize.y);
+
     const float rads = TWO_PI / float(AA_SAMPLES);
     for (int samp = 0; samp < AA_SAMPLES; samp++) {
         vec2 dxy = dh * vec2(cos(float(samp) * rads), sin(float(samp) * rads));
         vec3 ray = normalize(vec3(dxy, 1.5));// 1.5 is the lens length
         incidence += abs(dot(ray, norm));
 
-        float filmThickness = 0.5 + noise(vec3((float(time) + partialTicks) / 40.0) + pos) * 0.5;
+        float filmThickness = filmThickness(vec3(pos.xy + dxy, pos.z));
 
         vec3 att0 = attenuation(filmThickness, wavelengths0, norm, ray);
         vec3 att1 = attenuation(filmThickness, wavelengths1, norm, ray);
@@ -172,7 +243,7 @@ void main() {
 
         vec3 reflectedRay = reflect(ray, norm);
 
-        vec3 col = vec3(0.5);//normalize(sdf(rd + t) * 0.6 + 0.4);
+        vec3 col = vec3(0.5);// normalize(sdf(ray) * 0.6 + 0.4);
 
         vec3 cube0 = REFLECTANCE_GAMMA_SCALE * att0 * vec3(
             dot(texCubeSampleWeights(wavelengths0.x), col),

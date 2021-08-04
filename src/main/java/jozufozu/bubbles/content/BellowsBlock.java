@@ -38,27 +38,27 @@ public class BellowsBlock extends Block {
     // public static final AxisAlignedBB DETECTION_AABB = new AxisAlignedBB(0d, 4d / 16d, 0d, 1d, 14d / 16d, 1d);
 
     static {
-        VoxelShape bottom = Block.makeCuboidShape(0, 0, 1, 16, 2, 16);
-        VoxelShape lip = Block.makeCuboidShape(0, 2, 1, 16, 4, 3);
+        VoxelShape bottom = Block.box(0, 0, 1, 16, 2, 16);
+        VoxelShape lip = Block.box(0, 2, 1, 16, 4, 3);
 
-        VoxelShape base = VoxelShapes.combine(bottom, lip, IBooleanFunction.OR);
+        VoxelShape base = VoxelShapes.joinUnoptimized(bottom, lip, IBooleanFunction.OR);
 
-        VoxelShape nozzleBase = Block.makeCuboidShape(6, 0, 0, 10, 4, 1);
-        VoxelShape nozzleSpout = Block.makeCuboidShape(7, 1, -2, 9, 3, 0);
+        VoxelShape nozzleBase = Block.box(6, 0, 0, 10, 4, 1);
+        VoxelShape nozzleSpout = Block.box(7, 1, -2, 9, 3, 0);
 
-        VoxelShape nozzle = VoxelShapes.combine(nozzleSpout, nozzleBase, IBooleanFunction.OR);
+        VoxelShape nozzle = VoxelShapes.joinUnoptimized(nozzleSpout, nozzleBase, IBooleanFunction.OR);
 
-        VoxelShape northBase = VoxelShapes.combine(base, nozzle, IBooleanFunction.OR);
+        VoxelShape northBase = VoxelShapes.joinUnoptimized(base, nozzle, IBooleanFunction.OR);
 
-        VoxelShape unpressedAccordion = Block.makeCuboidShape(0, 2, 3, 16, 10, 16);
-        VoxelShape unpressedNorth = VoxelShapes.combineAndSimplify(northBase, unpressedAccordion, IBooleanFunction.OR);
+        VoxelShape unpressedAccordion = Block.box(0, 2, 3, 16, 10, 16);
+        VoxelShape unpressedNorth = VoxelShapes.join(northBase, unpressedAccordion, IBooleanFunction.OR);
         UNPRESSED_SHAPES[0] = ShapeUtil.rotateY(unpressedNorth, 180);
         UNPRESSED_SHAPES[1] = ShapeUtil.rotateY(unpressedNorth, 90);
         UNPRESSED_SHAPES[2] = unpressedNorth;
         UNPRESSED_SHAPES[3] = ShapeUtil.rotateY(unpressedNorth, 270);
 
-        VoxelShape pressedAccordion = Block.makeCuboidShape(0, 2, 3, 16, 4, 16);
-        VoxelShape pressedNorth = VoxelShapes.combineAndSimplify(northBase, pressedAccordion, IBooleanFunction.OR);
+        VoxelShape pressedAccordion = Block.box(0, 2, 3, 16, 4, 16);
+        VoxelShape pressedNorth = VoxelShapes.join(northBase, pressedAccordion, IBooleanFunction.OR);
         PRESSED_SHAPES[0] = ShapeUtil.rotateY(pressedNorth, 180);
         PRESSED_SHAPES[1] = ShapeUtil.rotateY(pressedNorth, 90);
         PRESSED_SHAPES[2] = pressedNorth;
@@ -66,19 +66,19 @@ public class BellowsBlock extends Block {
     }
 
     public BellowsBlock() {
-        super(AbstractBlock.Properties.create(Material.WOOD));
+        super(AbstractBlock.Properties.of(Material.WOOD));
 
-        this.setDefaultState(this.stateContainer.getBaseState().with(FACING, Direction.NORTH).with(TRIGGERED, false));
+        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(TRIGGERED, false));
     }
 
     public void neighborChanged(BlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving) {
-        boolean powered = worldIn.isBlockPowered(pos);
-        boolean triggered = state.get(TRIGGERED);
+        boolean powered = worldIn.hasNeighborSignal(pos);
+        boolean triggered = state.getValue(TRIGGERED);
         if (powered && !triggered) {
-            worldIn.getPendingBlockTicks().scheduleTick(pos, this, 2);
-            worldIn.setBlockState(pos, state.with(TRIGGERED, true), 3);
+            worldIn.getBlockTicks().scheduleTick(pos, this, 2);
+            worldIn.setBlock(pos, state.setValue(TRIGGERED, true), 3);
         } else if (!powered && triggered) {
-            worldIn.setBlockState(pos, state.with(TRIGGERED, false), 3);
+            worldIn.setBlock(pos, state.setValue(TRIGGERED, false), 3);
         }
     }
 
@@ -90,31 +90,31 @@ public class BellowsBlock extends Block {
     private void blow(BlockState state, ServerWorld world, BlockPos pos, Random rand) {
         world.playSound(null, pos, AllSounds.BELLOWS_BLOW.get(), SoundCategory.BLOCKS, 0.8f, 0.95f + 0.1f * rand.nextFloat());
 
-        Direction direction = state.get(FACING);
+        Direction direction = state.getValue(FACING);
 
-        BlockPos inFront = pos.offset(direction);
+        BlockPos inFront = pos.relative(direction);
         BlockState stateInFront = world.getBlockState(inFront);
-        if (stateInFront.isIn(Blocks.SOUL_FIRE) || stateInFront.isIn(AllBlocks.BLAZING_SOUL_FIRE.get())) {
+        if (stateInFront.is(Blocks.SOUL_FIRE) || stateInFront.is(AllBlocks.BLAZING_SOUL_FIRE.get())) {
             world.playSound(null, inFront, AllSounds.SOUL_BURN.get(), SoundCategory.BLOCKS, 0.4f, 0.8f + 0.8f * rand.nextFloat());
-            world.setBlockState(inFront, AllBlocks.BLAZING_SOUL_FIRE.get().getDefaultState());
+            world.setBlockAndUpdate(inFront, AllBlocks.BLAZING_SOUL_FIRE.get().defaultBlockState());
 
             return;
         }
 
-        int dX = direction.getXOffset();
-        int dZ = direction.getZOffset();
+        int dX = direction.getStepX();
+        int dZ = direction.getStepZ();
 
         AxisAlignedBB push = getPushZone(state, pos);
 
         double scale = 0.01;
         BubbleEntity.PushForce force = new BubbleEntity.PushForce(15, dX * scale, 0, dZ * scale);
 
-        for (BubbleEntity bubble : world.getEntitiesWithinAABB(BubbleEntity.class, push)) {
+        for (BubbleEntity bubble : world.getEntitiesOfClass(BubbleEntity.class, push)) {
             bubble.addForce(force.copy());
         }
 
         AxisAlignedBB front = new AxisAlignedBB(inFront);
-        for (AbstractStandEntity stand : world.getEntitiesWithinAABB(AbstractStandEntity.class, front)) {
+        for (AbstractStandEntity stand : world.getEntitiesOfClass(AbstractStandEntity.class, front)) {
 
             if (stand.getAttachmentBox().intersects(front))
                 stand.blowFrom(pos, dX, dZ, force.copy());
@@ -122,35 +122,35 @@ public class BellowsBlock extends Block {
     }
 
     public static AxisAlignedBB getPushZone(BlockState state, BlockPos pos) {
-        Direction direction = state.get(FACING);
+        Direction direction = state.getValue(FACING);
 
-        return new AxisAlignedBB(pos.offset(direction, 2)).grow(1, 0.5, 1);
+        return new AxisAlignedBB(pos.relative(direction, 2)).inflate(1, 0.5, 1);
     }
 
     @Override
     public BlockState getStateForPlacement(BlockItemUseContext context) {
-        Direction direction = context.getPlacementHorizontalFacing().getOpposite();
+        Direction direction = context.getHorizontalDirection().getOpposite();
 
-        return this.getDefaultState().with(FACING, direction);
+        return this.defaultBlockState().setValue(FACING, direction);
     }
 
-    protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateContainer.Builder<Block, BlockState> builder) {
         builder.add(FACING, TRIGGERED);
     }
 
     @Override
     public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
-        int i = state.get(FACING).getHorizontalIndex();
+        int i = state.getValue(FACING).get2DDataValue();
 
-        return state.get(TRIGGERED) ? PRESSED_SHAPES[i] : UNPRESSED_SHAPES[i];
+        return state.getValue(TRIGGERED) ? PRESSED_SHAPES[i] : UNPRESSED_SHAPES[i];
     }
 
-    public BlockRenderType getRenderType(BlockState state) {
+    public BlockRenderType getRenderShape(BlockState state) {
         return BlockRenderType.MODEL;
     }
 
     @Override
-    public boolean isTransparent(BlockState state) {
+    public boolean useShapeForLightOcclusion(BlockState state) {
         return true;
     }
 
@@ -160,10 +160,10 @@ public class BellowsBlock extends Block {
     }
 
     public BlockState rotate(BlockState state, Rotation rot) {
-        return state.with(FACING, rot.rotate(state.get(FACING)));
+        return state.setValue(FACING, rot.rotate(state.getValue(FACING)));
     }
 
     public BlockState mirror(BlockState state, Mirror mirrorIn) {
-        return state.rotate(mirrorIn.toRotation(state.get(FACING)));
+        return state.rotate(mirrorIn.getRotation(state.getValue(FACING)));
     }
 }

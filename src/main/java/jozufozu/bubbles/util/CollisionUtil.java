@@ -20,11 +20,11 @@ public class CollisionUtil {
     }
 
     public static Iterator<Collider.EntityCollider> makeEntityColliderIterator(IEntityReader world, @Nullable Entity entity, AxisAlignedBB box) {
-        if (box.getAverageEdgeLength() < 1.0E-7D) {
+        if (box.getSize() < 1.0E-7D) {
             return Collections.emptyIterator();
         } else {
-            AxisAlignedBB marginallyLarger = box.grow(1.0E-7D);
-            return world.getEntitiesInAABBexcluding(entity, marginallyLarger, null).stream().map(Collider.EntityCollider::new).iterator();
+            AxisAlignedBB marginallyLarger = box.inflate(1.0E-7D);
+            return world.getEntities(entity, marginallyLarger, null).stream().map(Collider.EntityCollider::new).iterator();
         }
     }
 
@@ -33,7 +33,7 @@ public class CollisionUtil {
         WorldBorder worldborder = world.getWorldBorder();
         AxisAlignedBB axisalignedbb = entity.getBoundingBox();
         if (!checkWorldBorderCollisionWithBox(worldborder, axisalignedbb)) {
-            VoxelShape shape = worldborder.getShape();
+            VoxelShape shape = worldborder.getCollisionShape();
             if (!checkMarginallySmallerBox(shape, axisalignedbb) && checkMarginallyLargerBox(shape, axisalignedbb)) {
                 return new Collider.WorldBorderCollider(worldborder, shape);
             }
@@ -43,18 +43,18 @@ public class CollisionUtil {
     }
 
     private static boolean checkMarginallyLargerBox(VoxelShape shape, AxisAlignedBB box) {
-        return VoxelShapes.compare(shape, VoxelShapes.create(box.grow(1.0E-7D)), IBooleanFunction.AND);
+        return VoxelShapes.joinIsNotEmpty(shape, VoxelShapes.create(box.inflate(1.0E-7D)), IBooleanFunction.AND);
     }
 
     private static boolean checkMarginallySmallerBox(VoxelShape shape, AxisAlignedBB box) {
-        return VoxelShapes.compare(shape, VoxelShapes.create(box.shrink(1.0E-7D)), IBooleanFunction.AND);
+        return VoxelShapes.joinIsNotEmpty(shape, VoxelShapes.create(box.deflate(1.0E-7D)), IBooleanFunction.AND);
     }
 
     private static boolean checkWorldBorderCollisionWithBox(WorldBorder border, AxisAlignedBB box) {
-        double d0 = MathHelper.floor(border.minX());
-        double d1 = MathHelper.floor(border.minZ());
-        double d2 = MathHelper.ceil(border.maxX());
-        double d3 = MathHelper.ceil(border.maxZ());
+        double d0 = MathHelper.floor(border.getMinX());
+        double d1 = MathHelper.floor(border.getMinZ());
+        double d2 = MathHelper.ceil(border.getMaxX());
+        double d3 = MathHelper.ceil(border.getMaxZ());
         return box.minX > d0 && box.minX < d2 && box.minZ > d1 && box.minZ < d3 && box.maxX > d0 && box.maxX < d2 && box.maxZ > d1 && box.maxZ < d3;
     }
 }

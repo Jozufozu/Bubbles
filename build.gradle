@@ -1,31 +1,35 @@
 buildscript {
     repositories {
-        maven { url = 'https://files.minecraftforge.net/maven' }
+        maven { url = 'https://maven.minecraftforge.net' }
         jcenter()
         mavenCentral()
     }
     dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: "${forgegradle_version}", changing: true
     }
 }
 
+plugins {
+    id 'com.github.johnrengelman.shadow' version "${shadow_version}"
+}
 apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
 
-group = 'jozufozu'
-version = '1.0-SNAPSHOT'
+group = 'com.jozufozu.bubbles'
+version = "${mod_version}"
 archivesBaseName = 'bubbles'
 
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 
 minecraft {
-    mappings channel: 'snapshot', version: '20201028-1.16.3'
+    mappings channel: 'official', version: "${minecraft_version}"
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
     runs {
         client {
             workingDirectory project.file('run')
 
-            jvmArgs '-XX:+UnlockCommercialFeatures'
             property 'forge.logging.console.level', 'debug'
 
             mods {
@@ -50,8 +54,6 @@ minecraft {
         data {
             workingDirectory project.file('run')
 
-            //property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
             property 'forge.logging.console.level', 'debug'
 
             args '--mod', 'bubbles', '--all', '--output', file('src/generated/resources/')
@@ -66,25 +68,7 @@ minecraft {
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.16.4-35.1.6'
-
-    // You may put jars on which you depend on in ./libs or you may define them like so..
-    // compile "some.group:artifact:version:classifier"
-    // compile "some.group:artifact:version"
-
-    // Real examples
-    // compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
-    // compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
-
-    // The 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
-    // provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
-
-    // These dependencies get remapped to your current MCP mappings
-    // deobf 'com.mod-buildcraft:buildcraft:6.0.8:dev'
-
-    // For more info...
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+    minecraft "net.minecraftforge:forge:${forge_version}"
 }
 
 jar.finalizedBy('reobfJar')

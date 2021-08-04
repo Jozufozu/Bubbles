@@ -32,7 +32,7 @@ public class ShapeUtil {
 
         ArrayList<VoxelShape> shapes = new ArrayList<>();
 
-        start.forEachBox((x1, y1, z1, x2, y2, z2) -> {
+        start.forAllBoxes((x1, y1, z1, x2, y2, z2) -> {
             x1 -= 0.5;
             z1 -= 0.5;
             x2 -= 0.5;
@@ -48,15 +48,15 @@ public class ShapeUtil {
             x2r += 0.5;
             z2r += 0.5;
 
-            shapes.add(VoxelShapes.create(x1r, y1, z1r, x2r, y2, z2r));
+            shapes.add(VoxelShapes.box(x1r, y1, z1r, x2r, y2, z2r));
         });
 
         VoxelShape shape = shapes.get(0);
 
         for (int i = 1; i < shapes.size(); i++) {
-            shape = VoxelShapes.combine(shape, shapes.get(i), IBooleanFunction.OR);
+            shape = VoxelShapes.joinUnoptimized(shape, shapes.get(i), IBooleanFunction.OR);
         }
 
-        return shape.simplify();
+        return shape.optimize();
     }
 }

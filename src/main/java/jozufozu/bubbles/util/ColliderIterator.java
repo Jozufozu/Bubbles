@@ -28,7 +28,7 @@ public class ColliderIterator implements Iterator<Collider.BlockCollider> {
     private Collider.BlockCollider next;
 
     public ColliderIterator(ICollisionReader world, @Nullable Entity entity, AxisAlignedBB aabb) {
-        this.context = entity == null ? ISelectionContext.dummy() : ISelectionContext.forEntity(entity);
+        this.context = entity == null ? ISelectionContext.empty() : ISelectionContext.of(entity);
         this.mutablePos = new BlockPos.Mutable();
         this.checkShape = VoxelShapes.create(aabb);
         this.world = world;
@@ -52,11 +52,11 @@ public class ColliderIterator implements Iterator<Collider.BlockCollider> {
     @Nullable
     private Collider.BlockCollider nextBlock() {
         while (true) {
-            if (this.cubeCoordinateIterator.hasNext()) {
-                int x = this.cubeCoordinateIterator.getX();
-                int y = this.cubeCoordinateIterator.getY();
-                int z = this.cubeCoordinateIterator.getZ();
-                int boundariesTouched = this.cubeCoordinateIterator.numBoundariesTouched();
+            if (this.cubeCoordinateIterator.advance()) {
+                int x = this.cubeCoordinateIterator.nextX();
+                int y = this.cubeCoordinateIterator.nextY();
+                int z = this.cubeCoordinateIterator.nextZ();
+                int boundariesTouched = this.cubeCoordinateIterator.getNextType();
                 if (boundariesTouched == 3) {
                     continue;
                 }
@@ -66,29 +66,29 @@ public class ColliderIterator implements Iterator<Collider.BlockCollider> {
                     continue;
                 }
 
-                this.mutablePos.setPos(x, y, z);
+                this.mutablePos.set(x, y, z);
                 BlockState state = chunkReader.getBlockState(this.mutablePos);
 
-                if (state.isIn(Blocks.AIR)) continue;
+                if (state.is(Blocks.AIR)) continue;
                 //            if (boundariesTouched == 1 && !state.isCollisionShapeLargerThanFullBlock() || boundariesTouched == 2 && !state.isIn(Blocks.MOVING_PISTON)) {
                 //               continue;
                 //            }
 
                 VoxelShape voxelshape = state.getCollisionShape(this.world, this.mutablePos, this.context);
-                if (voxelshape == VoxelShapes.fullCube()) {
+                if (voxelshape == VoxelShapes.block()) {
                     if (!this.aabb.intersects(x, y, z, (double)x + 1.0D, (double)y + 1.0D, (double)z + 1.0D)) {
                         continue;
                     }
 
-                    return new Collider.BlockCollider(state, voxelshape.withOffset(x, y, z), this.mutablePos.toImmutable());
+                    return new Collider.BlockCollider(state, voxelshape.move(x, y, z), this.mutablePos.immutable());
                 }
 
-                VoxelShape translated = voxelshape.withOffset(x, y, z);
-                if (!VoxelShapes.compare(translated, this.checkShape, IBooleanFunction.AND)) {
+                VoxelShape translated = voxelshape.move(x, y, z);
+                if (!VoxelShapes.joinIsNotEmpty(translated, this.checkShape, IBooleanFunction.AND)) {
                     continue;
                 }
 
-                return new Collider.BlockCollider(state, voxelshape, this.mutablePos.toImmutable());
+                return new Collider.BlockCollider(state, voxelshape, this.mutablePos.immutable());
             }
 
             return null;
@@ -97,7 +97,7 @@ public class ColliderIterator implements Iterator<Collider.BlockCollider> {
 
     @Nullable
     private IBlockReader chunkReader(int x, int z) {
-        return this.world.getBlockReader(x >> 4, z >> 4);
+        return this.world.getChunkForCollisions(x >> 4, z >> 4);
     }
 
     @Override

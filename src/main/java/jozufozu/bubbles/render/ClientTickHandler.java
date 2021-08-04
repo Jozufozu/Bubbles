@@ -38,25 +38,25 @@ public final class ClientTickHandler {
     @SubscribeEvent
     public static void bellowsHighlight(DrawHighlightEvent.HighlightBlock event) {
         ClientPlayerEntity player = Minecraft.getInstance().player;
-        ClientWorld world = Minecraft.getInstance().world;
+        ClientWorld world = Minecraft.getInstance().level;
 
         if (player == null || world == null) return;
 
-        if (!player.isSneaking()) {
+        if (!player.isShiftKeyDown()) {
             return;
         }
 
         BlockRayTraceResult target = event.getTarget();
 
-        BlockPos pos = target.getPos();
+        BlockPos pos = target.getBlockPos();
         BlockState state = world.getBlockState(pos);
 
         Block block = state.getBlock();
         if (block instanceof BellowsBlock) {
-            Vector3d view = event.getInfo().getProjectedView();
-            AxisAlignedBB pushZone = BellowsBlock.getPushZone(state, pos).offset(-view.x, -view.y, -view.z);
+            Vector3d view = event.getInfo().getPosition();
+            AxisAlignedBB pushZone = BellowsBlock.getPushZone(state, pos).move(-view.x, -view.y, -view.z);
 
-            WorldRenderer.drawBoundingBox(event.getMatrix(), event.getBuffers().getBuffer(RenderType.getLines()), pushZone, 1f, 1f, 1f, 0.5f);
+            WorldRenderer.renderLineBox(event.getMatrix(), event.getBuffers().getBuffer(RenderType.lines()), pushZone, 1f, 1f, 1f, 0.5f);
         }
     }
 
@@ -73,7 +73,7 @@ public final class ClientTickHandler {
     public static void clientTickEnd(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
 
-            if (!Minecraft.getInstance().isGamePaused()) {
+            if (!Minecraft.getInstance().isPaused()) {
                 ticksInGame++;
                 partialTicks = 0;
             }

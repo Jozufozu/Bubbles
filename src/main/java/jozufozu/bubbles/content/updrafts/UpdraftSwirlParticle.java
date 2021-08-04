@@ -13,13 +13,13 @@ public class UpdraftSwirlParticle extends UpdraftParticle {
     private UpdraftSwirlParticle(ClientWorld world, double x, double y, double z, double motionX, double motionY, double motionZ, IAnimatedSprite spriteWithAge) {
         super(spriteWithAge, world, x, y, z);
         this.setSize(0.02F, 0.02F);
-        this.particleAlpha = 0.8f + this.rand.nextFloat() * 0.2f;
-        this.particleScale *= 3 + this.rand.nextFloat() * 0.6F;
-        this.motionX = motionX * (double)0.2F + (Math.random() * 2.0D - 1.0D) * (double)0.02F;
-        this.motionY = motionY + (Math.random() * 2.0D - 1.0D) * (double)0.02F;
-        this.motionZ = motionZ * (double)0.2F + (Math.random() * 2.0D - 1.0D) * (double)0.02F;
-        this.maxAge = 28;
-        this.selectSpriteWithAge(spriteWithAge);
+        this.alpha = 0.8f + this.random.nextFloat() * 0.2f;
+        this.quadSize *= 3 + this.random.nextFloat() * 0.6F;
+        this.xd = motionX * (double)0.2F + (Math.random() * 2.0D - 1.0D) * (double)0.02F;
+        this.yd = motionY + (Math.random() * 2.0D - 1.0D) * (double)0.02F;
+        this.zd = motionZ * (double)0.2F + (Math.random() * 2.0D - 1.0D) * (double)0.02F;
+        this.lifetime = 28;
+        this.setSpriteFromAge(spriteWithAge);
     }
 
     public IParticleRenderType getRenderType() {
@@ -34,7 +34,7 @@ public class UpdraftSwirlParticle extends UpdraftParticle {
             this.spriteSet = spriteSet;
         }
 
-        public Particle makeParticle(BasicParticleType typeIn, ClientWorld worldIn, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed) {
+        public Particle createParticle(BasicParticleType typeIn, ClientWorld worldIn, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed) {
             return new UpdraftSwirlParticle(worldIn, x, y, z, xSpeed, ySpeed, zSpeed, spriteSet);
         }
     }
