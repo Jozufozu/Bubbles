@@ -29,7 +29,7 @@ public class ShaderWrappedRenderType extends RenderType {
     private final Shader shader;
 
     public ShaderWrappedRenderType(Shader shader, RenderType delegate) {
-        super(Bubbles.MODID + delegate.toString() + "_with_" + shader.name(), delegate.format(), delegate.mode(), delegate.bufferSize(), delegate.affectsCrumbling(), true,
+        super(Bubbles.MODID + delegate + "_with_" + shader.name(), delegate.format(), delegate.mode(), delegate.bufferSize(), delegate.affectsCrumbling(), true,
               () -> {
                   delegate.setupRenderState();
                   ShaderHelper.useShader(shader);

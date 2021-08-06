@@ -67,8 +67,22 @@ minecraft {
     }
 }
 
+repositories {
+    maven {
+        // Location of the maven for Flywheel
+        name = "tterrag maven"
+        url = "https://maven.tterrag.com/"
+    }
+}
+
 dependencies {
     minecraft "net.minecraftforge:forge:${forge_version}"
+
+    if (findProject(':Flywheel') != null) {
+        implementation project(':Flywheel') // jozu: I use a gradle workspace with both projects
+    } else {
+        implementation fg.deobf("com.jozufozu.flywheel:Flywheel:${flywheel_version}")
+    }
 }
 
 jar.finalizedBy('reobfJar')

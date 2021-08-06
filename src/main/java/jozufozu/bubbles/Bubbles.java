@@ -3,12 +3,14 @@ package jozufozu.bubbles;
 import jozufozu.bubbles.content.core.BubbleRenderer;
 import jozufozu.bubbles.content.stands.CraftingStandRenderer;
 import jozufozu.bubbles.content.stands.WandStandRenderer;
+import jozufozu.bubbles.render.BubblesClient;
 import jozufozu.bubbles.render.shader.ShaderHelper;
 import jozufozu.bubbles.content.core.behavior.Behaviors;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.RenderTypeLookup;
 import net.minecraft.entity.EntityType;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.common.Mod;
@@ -27,21 +29,23 @@ public class Bubbles {
 
 
     public Bubbles() {
-        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> ShaderHelper::initShaders);
+        IEventBus bus = FMLJavaModLoadingContext.get()
+                .getModEventBus();
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> bus.addListener(BubblesClient::flwInit));
 
         Behaviors.initBehaviors();
 
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::enqueueIMC);
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::processIMC);
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::doClientStuff);
+        bus.addListener(this::setup);
+        bus.addListener(this::enqueueIMC);
+        bus.addListener(this::processIMC);
+        bus.addListener(this::doClientStuff);
 
-        FMLJavaModLoadingContext.get().getModEventBus().addGenericListener(EntityType.class, AllEntityTypes::registerEntities);
+        bus.addGenericListener(EntityType.class, AllEntityTypes::registerEntities);
 
-        AllItems.ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
-        AllBlocks.BLOCKS.register(FMLJavaModLoadingContext.get().getModEventBus());
-        AllSounds.SOUNDS.register(FMLJavaModLoadingContext.get().getModEventBus());
-        AllParticles.PARTICLES.register(FMLJavaModLoadingContext.get().getModEventBus());
+        AllItems.ITEMS.register(bus);
+        AllBlocks.BLOCKS.register(bus);
+        AllSounds.SOUNDS.register(bus);
+        AllParticles.PARTICLES.register(bus);
     }
 
     private void setup(final FMLCommonSetupEvent event) { }

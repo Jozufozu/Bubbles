@@ -1,5 +1,4 @@
-
-#version 120
+#flwbuiltins
 
 // performance and raymarching options
 #define INTERSECTION_PRECISION 0.01  // raymarcher intersection precision
@@ -22,13 +21,14 @@
 #define TWO_PI 6.28318530718
 #define WAVELENGTHS 6				 // number of wavelengths, not a free parameter
 
+#[Fragment]
+struct BubbleFrag {
+    vec3 pos;
+    vec3 normal;
+    vec4 color;
+    vec2 bubbleMap;
+};
 
-varying vec3 pos;
-varying vec3 normal;
-
-uniform sampler2D bgl_RenderedTexture;
-uniform int time; // Passed in, see ShaderHelper.java
-uniform float partialTicks; // Passed in, see ShaderHelper.java
 uniform vec2 windowSize;
 
 // iq's 3D noise function
@@ -58,7 +58,7 @@ vec3 noise3(vec3 x) {
 
 // make it warble
 vec3 sdf( vec3 p ) {
-    float t = float(time) + partialTicks;
+    float t = uTime;
     t = t / 20.0;
     vec3 n = vec3(sin(t * 0.5), sin(t * 0.3), cos(t * 0.2));
     vec3 q = 0.5 * (noise3(p + n) - 0.5);
@@ -201,18 +201,21 @@ float filmThickness(vec3 pos) {
 //
 //    float DF = 0.0;
 //
-//    float t = float(time) + partialTicks;
+//    float t = uTime;
 //
 //    // Add a random position
 //    float a = snoise(pos*vec2(cos(t * 0.150),sin(snoise(vec2(t * 0.092, 1.)))) * 0.1) * PI;
 //    vec2 vel = vec2(cos(a), sin(a));
 //
 //    return turbulence(vec2(snoise(pos+vel)) + vec2(t * 0.1))*0.778;
-    return 0.5 + noise(vec3((float(time) + partialTicks) / 200.0) + pos) * 0.5;
-    //return 0.5 + turbulence(noise3(vec3((float(time) + partialTicks) / 200.0) + pos)) * 0.5;
+    return 0.5 + noise(vec3(uTime / 200.0) + pos) * 0.5;
+    //return 0.5 + turbulence(noise3(vec3(uTime / 200.0) + pos)) * 0.5;
 }
 
-void main() {
+void FLWMain(BubbleFrag bubble) {
+    vec3 pos = bubble.pos;
+    vec3 normal = bubble.normal;
+
     vec3 color = vec3(0.0);
     float incidence = 0.0;
 
@@ -225,7 +228,7 @@ void main() {
 
     vec3 norm = normalize(abs(sdf(normal))) * 0.8 + vec3(0.2);
 
-    float dh = (0.666 / windowSize.y);
+    float dh = (0.666 / uWindowSize.y);
 
     const float rads = TWO_PI / float(AA_SAMPLES);
     for (int samp = 0; samp < AA_SAMPLES; samp++) {
@@ -246,14 +249,14 @@ void main() {
         vec3 col = vec3(0.5);// normalize(sdf(ray) * 0.6 + 0.4);
 
         vec3 cube0 = REFLECTANCE_GAMMA_SCALE * att0 * vec3(
-            dot(texCubeSampleWeights(wavelengths0.x), col),
-            dot(texCubeSampleWeights(wavelengths0.y), col),
-            dot(texCubeSampleWeights(wavelengths0.z), col)
+        dot(texCubeSampleWeights(wavelengths0.x), col),
+        dot(texCubeSampleWeights(wavelengths0.y), col),
+        dot(texCubeSampleWeights(wavelengths0.z), col)
         );
         vec3 cube1 = REFLECTANCE_GAMMA_SCALE * att1 * vec3(
-            dot(texCubeSampleWeights(wavelengths1.x), col),
-            dot(texCubeSampleWeights(wavelengths1.y), col),
-            dot(texCubeSampleWeights(wavelengths1.z), col)
+        dot(texCubeSampleWeights(wavelengths1.x), col),
+        dot(texCubeSampleWeights(wavelengths1.y), col),
+        dot(texCubeSampleWeights(wavelengths1.z), col)
         );
 
         vec3 refl0 = REFLECTANCE_SCALE * filmic_gamma_inverse(mix(vec3(0), cube0, f0));
@@ -272,10 +275,12 @@ void main() {
     color /= float(AA_SAMPLES);
     incidence /= float(AA_SAMPLES);
 
-    vec2 st = vec2(gl_TexCoord[0]);
-    vec4 tex = texture2D(bgl_RenderedTexture, st);
+    vec2 st = vec2(bubble.bubbleMap);
+    vec4 tex = texture2D(uBlockAtlas, st);
     float white = tex.r;
     float incidenceMult = tex.g;
 
-    gl_FragColor = vec4(contrast(color * 0.4) + vec3(0.3 + white), 0.3 - pow(incidence, 5.) * 0.29 * incidenceMult);
+    vec4 color = vec4(contrast(color * 0.4) + vec3(0.3 + white), 0.3 - pow(incidence, 5.) * 0.29 * incidenceMult);
+
+    FLWFinalizeColor(color);
 }
