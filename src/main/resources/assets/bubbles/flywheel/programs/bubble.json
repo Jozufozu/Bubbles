@@ -1,6 +1,5 @@
 {
-  "vert": "bubbles:bubble.vert",
-  "frag": "bubbles:bubble.frag",
+  "source": "bubbles:bubble.glsl",
   "states": [
     {
       "when": {

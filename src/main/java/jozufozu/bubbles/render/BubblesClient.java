@@ -15,6 +15,6 @@ public class BubblesClient {
     public static final MaterialSpec<BubbleData> BUBBLE_MATERIAL = new MaterialSpec<>(BUBBLE, BUBBLE, Formats.UNLIT_MODEL, BUBBLE_INSTANCE, BubbleData::new);
 
     public static void flwInit(GatherContextEvent event) {
-        //event.getBackend().register(BUBBLE_MATERIAL);
+        event.getBackend().register(BUBBLE_MATERIAL);
     }
 }

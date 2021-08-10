@@ -1,4 +1,3 @@
-#flwbuiltins
 
 // performance and raymarching options
 #define INTERSECTION_PRECISION 0.01  // raymarcher intersection precision
@@ -21,7 +20,16 @@
 #define TWO_PI 6.28318530718
 #define WAVELENGTHS 6				 // number of wavelengths, not a free parameter
 
-#[Fragment]
+#use "flywheel:core/diffuse.glsl"
+#use "flywheel:data/modelvertex.glsl"
+
+struct Instance {
+    vec2 light;
+    vec4 color;
+    mat4 transform;
+    mat3 normalMat;
+};
+
 struct BubbleFrag {
     vec3 pos;
     vec3 normal;
@@ -29,7 +37,29 @@ struct BubbleFrag {
     vec2 bubbleMap;
 };
 
-uniform vec2 windowSize;
+
+#if defined(VERTEX_SHADER)
+BubbleFrag vertex(Vertex v, Instance i) {
+    vec4 worldPos = i.transform * vec4(v.pos, 1.);
+
+    vec3 norm = i.normalMat * v.normal;
+
+    FLWFinalizeWorldPos(worldPos);
+    FLWFinalizeNormal(norm);
+
+    BubbleFrag b;
+    b.pos = worldPos.xyz;
+    b.normal = norm;
+    b.bubbleMap = v.texCoords;
+    //b.light = i.light;
+    #if defined(DEBUG_NORMAL)
+    b.color = vec4(norm, 1.);
+    #else
+    b.color = i.color;
+    #endif
+    return b;
+}
+#elif defined(FRAGMENT_SHADER)
 
 // iq's 3D noise function
 float hash( float n ){
@@ -212,7 +242,7 @@ float filmThickness(vec3 pos) {
     //return 0.5 + turbulence(noise3(vec3(uTime / 200.0) + pos)) * 0.5;
 }
 
-void FLWMain(BubbleFrag bubble) {
+void fragment(BubbleFrag bubble) {
     vec3 pos = bubble.pos;
     vec3 normal = bubble.normal;
 
@@ -280,7 +310,8 @@ void FLWMain(BubbleFrag bubble) {
     float white = tex.r;
     float incidenceMult = tex.g;
 
-    vec4 color = vec4(contrast(color * 0.4) + vec3(0.3 + white), 0.3 - pow(incidence, 5.) * 0.29 * incidenceMult);
+    vec4 finalColor = vec4(contrast(color * 0.4) + vec3(0.3 + white), 0.3 - pow(incidence, 5.) * 0.29 * incidenceMult);
 
-    FLWFinalizeColor(color);
+    FLWFinalizeColor(finalColor);
 }
+#endif // defined(FRAGMENT_SHADER)
